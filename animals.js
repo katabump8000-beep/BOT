@@ -85,7 +85,6 @@ const ANIMALS_LIST = [
 
 const ANIMALS_FOLDER = path.join(__dirname, "animal_images");
 
-// التأكد من وجود المجلد
 if (!fs.existsSync(ANIMALS_FOLDER)) {
     fs.mkdirSync(ANIMALS_FOLDER, { recursive: true });
 }
@@ -154,7 +153,7 @@ function getMessageText(message) {
 }
 
 // ============================================================
-// عرض التحميل (8 مراحل خلال 8 ثواني)
+// عرض التحميل
 // ============================================================
 
 async function showLoading(sock, jid, msg) {
@@ -248,7 +247,6 @@ async function handleAnimalsCommand(
     isBotOwner
 ) {
     try {
-        // التحقق من وجود لعبة نشطة
         if (activeAnimals[jid]) {
             await safeSend(sock, jid, {
                 text: "⚠️ هناك فعالية حيوانات قائمة بالفعل في هذه المجموعة!"
@@ -256,7 +254,6 @@ async function handleAnimalsCommand(
             return true;
         }
 
-        // التحقق من الصلاحية
         db.gamePermissions = Array.isArray(db.gamePermissions) ? db.gamePermissions : [];
         const hasPermission = Boolean(isBotOwner) || db.gamePermissions.includes(cleanSender);
 
@@ -267,7 +264,6 @@ async function handleAnimalsCommand(
             return true;
         }
 
-        // التحقق من وجود لقب
         if (!hasNickname(db, cleanSender)) {
             await safeSend(sock, jid, {
                 text: "❌ يجب أن يكون لديك لقب مسجل عبر .سجل لتتمكن من بدء الفعالية."
@@ -275,7 +271,6 @@ async function handleAnimalsCommand(
             return true;
         }
 
-        // التحقق من وجود صور
         const availableAnimals = ANIMALS_LIST.filter(animal => animalImageExists(animal.id));
         if (availableAnimals.length === 0) {
             await safeSend(sock, jid, {
@@ -284,7 +279,6 @@ async function handleAnimalsCommand(
             return true;
         }
 
-        // التحقق من الكوولدوان
         const now = Date.now();
         const cooldownTime = 5 * 60 * 1000;
         db.gameCooldown = db.gameCooldown && typeof db.gameCooldown === "object" ? db.gameCooldown : {};
@@ -304,10 +298,8 @@ async function handleAnimalsCommand(
         db.gameCooldown[jid] = now;
         if (typeof saveDb === "function") saveDb();
 
-        // ✅ عرض التحميل
         await showLoading(sock, jid, msg);
 
-        // إنشاء حالة اللعبة
         const animals = shuffleArray([...availableAnimals]);
         const gameState = {
             animals: animals,
@@ -347,21 +339,17 @@ async function handleAnimalsCommand(
 
         activeAnimals[jid] = gameState;
 
-        // إرسال رسالة البداية
         await safeSend(sock, jid, {
             text: getAnimalsStartMessage()
         }, { quoted: msg });
 
-        // انتظار 2 ثانية ثم إرسال السؤال الأول
         setTimeout(async () => {
             if (!gameState.isActive) return;
             await sendNextAnimalQuestion(sock, jid, db, gameState);
         }, 2000);
 
-        // بدء مؤقت النشاط
         startAnimalsInactivityTimer(sock, jid, gameState);
 
-        // تسجيل مستمع الرسائل
         const listener = async (mObj) => {
             try {
                 if (!gameState.isActive || gameState.isPaused || gameState.isWaitingNext) return;
@@ -381,12 +369,10 @@ async function handleAnimalsCommand(
 
                 gameState.lastActivity = Date.now();
 
-                // التحقق من الإجابة
                 if (gameState.currentAnimal) {
                     const normalizedAnswer = normalizeText(txt);
                     const animal = gameState.currentAnimal;
 
-                    // التحقق من الاسم أو المرادفات
                     const isCorrect = 
                         normalizedAnswer === normalizeText(animal.name) ||
                         animal.aliases.some(alias => normalizedAnswer === normalizeText(alias));
@@ -397,21 +383,17 @@ async function handleAnimalsCommand(
                         gameState.scores[senderNumber] = (gameState.scores[senderNumber] || 0) + 1;
                         const currentScore = gameState.scores[senderNumber];
 
-                        // فوز
                         if (currentScore >= 10) {
                             const winnerClean = cleanNumber(userSender);
                             const winnerTag = `@${winnerClean}`;
 
-                            // إيقاف اللعبة
                             gameState.stopGame();
 
-                            // إرسال رسالة الفوز
                             await safeSend(sock, jid, {
                                 text: getAnimalsWinner(winnerClean),
                                 mentions: [userSender]
                             });
 
-                            // تحديث الرصيد
                             db.users = db.users && typeof db.users === "object" ? db.users : {};
                             if (db.users[winnerClean]) {
                                 const user = db.users[winnerClean];
@@ -420,13 +402,15 @@ async function handleAnimalsCommand(
                                 if (typeof saveDb === "function") saveDb();
                             }
 
-                            // رسالة الإيداع
                             await safeSend(sock, jid, {
                                 text: getAnimalsDeposit(winnerClean, gameState.prizeAmount),
                                 mentions: [userSender]
                             });
 
-                            // إرسال إعلان
+                            // ⭐ إعلان باللقب
+                            const winnerUser = db.users?.[winnerClean];
+                            const winnerNickname = (winnerUser && String(winnerUser.nickname || "").trim()) || winnerClean;
+
                             const adMessage = `_*█ إنــتــهــت█*_
 
 ◇🎮 نـــــــوع الفعالية:
@@ -436,7 +420,7 @@ async function handleAnimalsCommand(
 *{ ${gameState.prizeAmount}$ }*
 
 ◇🎖️ آلَفــــــآئــز:
-@${winnerClean}
+*${winnerNickname}*
 
 ◇⏰ بّـــــــدأت:
 *{${formatDate(gameState.startTime)}}*
@@ -448,8 +432,7 @@ async function handleAnimalsCommand(
                                 for (const adJid of Object.keys(db.adsGroups)) {
                                     if (!db.adsGroups[adJid]) continue;
                                     await safeSend(sock, adJid, {
-                                        text: adMessage,
-                                        mentions: [userSender]
+                                        text: adMessage
                                     });
                                 }
                             }
@@ -457,12 +440,10 @@ async function handleAnimalsCommand(
                             return;
                         }
 
-                        // إجابة صحيحة ولكن ليس فائزاً بعد
                         await safeSend(sock, jid, {
                             text: getAnimalsCorrect(currentScore)
                         }, { quoted: incomingMsg });
 
-                        // إرسال السؤال التالي بعد 4 ثواني
                         if (gameState.timers.next) {
                             clearTimeout(gameState.timers.next);
                         }
@@ -501,7 +482,6 @@ async function handleAnimalsCommand(
 async function sendNextAnimalQuestion(sock, jid, db, gameState) {
     if (!gameState.isActive || gameState.isPaused) return;
     if (gameState.currentIndex >= gameState.totalQuestions) {
-        // انتهت الأسئلة - نعيد خلط القائمة
         gameState.animals = shuffleArray([...gameState.animals]);
         gameState.currentIndex = 0;
     }
@@ -511,7 +491,6 @@ async function sendNextAnimalQuestion(sock, jid, db, gameState) {
     gameState.currentIndex++;
     gameState.lastActivity = Date.now();
 
-    // إرسال صورة الحيوان
     const imagePath = getAnimalImagePath(animal.id);
     
     if (fs.existsSync(imagePath)) {
@@ -523,27 +502,22 @@ async function sendNextAnimalQuestion(sock, jid, db, gameState) {
             });
         } catch (error) {
             console.error("❌ خطأ في إرسال صورة الحيوان:", error?.message);
-            // في حال فشل إرسال الصورة، نرسل النص فقط
             await safeSend(sock, jid, {
                 text: `${getAnimalsQuestion(animal.name)}\n\n⚠️ لم يتم تحميل الصورة. اكتب اسم الحيوان: ${animal.name}`
             });
         }
     } else {
-        // إذا لم توجد الصورة، نرسل النص فقط
         await safeSend(sock, jid, {
             text: `${getAnimalsQuestion(animal.name)}\n\n⚠️ الصورة غير متوفرة. اكتب اسم الحيوان: ${animal.name}`
         });
     }
 
-    // بدء مؤقت السؤال (30 ثانية)
     if (gameState.timers.question) {
         clearTimeout(gameState.timers.question);
     }
 
     gameState.timers.question = setTimeout(async () => {
         if (!gameState.isActive || gameState.isPaused) return;
-
-        // لا يوجد إجابة - إرسال سؤال جديد
         gameState.isWaitingNext = false;
         await safeSend(sock, jid, {
             text: getAnimalsTimeout()
