@@ -108,7 +108,7 @@ function getRandomEmoji() {
 }
 
 // ============================================================
-// الكريستال - الأنماط والنسب الجديدة
+// الكريستال - الأنماط والنسب
 // ============================================================
 
 const CRYSTAL_PATTERNS = [
@@ -200,7 +200,7 @@ function crystalGameBlocked() {
 }
 
 // ============================================================
-// إرسال إعلان الفوز
+// إرسال إعلان الفوز (استخدام اللقب بدلاً من المنشن)
 // ============================================================
 
 async function sendCrystalWinAd(sock, db, cleanSender, sender, amount) {
@@ -212,6 +212,10 @@ async function sendCrystalWinAd(sock, db, cleanSender, sender, amount) {
 
     const startTimeFormatted = `${days[date.getDay()]} | ${date.getDate()} | ${months[date.getMonth()]}`;
 
+    // ⭐ استخدام اللقب
+    const winnerUser = db.users?.[cleanSender];
+    const winnerNickname = (winnerUser && String(winnerUser.nickname || "").trim()) || cleanSender;
+
     const adMessage = `_*█ إنــتــهــت█*_
 
 ◇🎮 نـــــــوع الفعالية:
@@ -221,7 +225,7 @@ async function sendCrystalWinAd(sock, db, cleanSender, sender, amount) {
 *{ ${amount}$ }*
 
 ◇🎖️ آلَفــــــآئــز:
-@${cleanSender}
+*${winnerNickname}*
 
 ◇⏰ بّـــــــدأت:
 *{${startTimeFormatted}}*
@@ -232,21 +236,25 @@ async function sendCrystalWinAd(sock, db, cleanSender, sender, amount) {
     for (const adJid of Object.keys(db.adsGroups)) {
         if (!db.adsGroups[adJid]) continue;
         await safeSend(sock, adJid, {
-            text: adMessage,
-            mentions: [sender]
+            text: adMessage
+            // ⭐ لا mentions
         });
     }
 }
 
 // ============================================================
-// إرسال إعلان الخسارة
+// إرسال إعلان الخسارة (استخدام اللقب)
 // ============================================================
 
 async function sendCrystalLossAd(sock, db, cleanSender, sender, amount) {
     if (!db.adsGroups || typeof db.adsGroups !== "object") return;
 
+    // ⭐ استخدام اللقب
+    const loserUser = db.users?.[cleanSender];
+    const loserNickname = (loserUser && String(loserUser.nickname || "").trim()) || cleanSender;
+
     const lossMessage = `╗══════💔══════╔
-اللاعب @${cleanSender} خسر في
+اللاعب *${loserNickname}* خسر في
 لعبة الكرستال بمبلغ يبلغ قيمته:
 ﴿ ${amount} ﴾
 ╝══════💔══════╚`;
@@ -254,14 +262,13 @@ async function sendCrystalLossAd(sock, db, cleanSender, sender, amount) {
     for (const adJid of Object.keys(db.adsGroups)) {
         if (!db.adsGroups[adJid]) continue;
         await safeSend(sock, adJid, {
-            text: lossMessage,
-            mentions: [sender]
+            text: lossMessage
         });
     }
 }
 
 // ============================================================
-// تشغيل دوران الكريستال (6 دورات ثابتة)
+// تشغيل دوران الكريستال
 // ============================================================
 
 async function spinCrystal(sock, jid, msgId, betAmount) {
@@ -296,7 +303,7 @@ async function spinCrystal(sock, jid, msgId, betAmount) {
 }
 
 // ============================================================
-// بدء الكريستال (معدل - يمنع إذا كان هناك صراحة نشطة)
+// بدء الكريستال
 // ============================================================
 
 async function startCrystal(
@@ -311,7 +318,6 @@ async function startCrystal(
     parts
 ) {
     try {
-        // ✅ التحقق من وجود لعبة صراحة نشطة
         if (isSarahaActive(jid)) {
             await safeSend(sock, jid, {
                 text: "⚠️ لا يمكن بدء الكريستال أثناء وجود لعبة صراحة نشطة."
@@ -331,7 +337,6 @@ async function startCrystal(
         db.crystalCooldown = db.crystalCooldown || {};
         db.crystalPlayerCooldown = db.crystalPlayerCooldown || {};
 
-        // التحقق من وجود روليت
         if (activeCasinos[jid]) {
             await safeSend(sock, jid, {
                 text: crystalGameBlocked()
@@ -339,7 +344,6 @@ async function startCrystal(
             return false;
         }
 
-        // التحقق من اللقب
         if (!hasNickname(db, senderNumber)) {
             await safeSend(sock, jid, {
                 text: "❌ يجب أن يكون لديك لقب مسجل عبر .سجل لتتمكن من اللعب."
@@ -347,7 +351,6 @@ async function startCrystal(
             return false;
         }
 
-        // التحقق من مبلغ الرهان
         const betAmount = parseBet(parts);
         if (betAmount < MIN_BET) {
             await safeSend(sock, jid, {
@@ -363,7 +366,6 @@ async function startCrystal(
             return false;
         }
 
-        // التحقق من الرصيد
         const balance = getBalance(db, senderNumber);
         if (balance < betAmount) {
             await safeSend(sock, jid, {
@@ -372,7 +374,6 @@ async function startCrystal(
             return false;
         }
 
-        // نظام Cooldown المزدوج
         const now = Date.now();
 
         const lastPlayerGame = Number(db.crystalPlayerCooldown[senderNumber]) || 0;
@@ -397,7 +398,6 @@ async function startCrystal(
             return false;
         }
 
-        // تثبيت المستخدم وحجز الرهان
         const user = ensureUser(db, senderNumber);
         user.balance = Number(user.balance) || 0;
 
@@ -414,7 +414,6 @@ async function startCrystal(
         db.crystalCooldown[jid] = now;
         saveDb();
 
-        // بداية اللعبة - نرسل أول نمط عشوائي فوراً
         const firstPattern = getWeightedCrystalPattern();
         const firstCombo = firstPattern.pattern;
         const startMessage = crystalDisplay(firstCombo, betAmount);
@@ -432,12 +431,10 @@ async function startCrystal(
 
         const msgId = sent.key;
 
-        // الآن نقوم بـ 5 دورات إضافية (المجموع 6)
         const round = await spinCrystal(sock, jid, msgId, betAmount);
         const finalCombo = round.combo;
         const finalResult = round.result;
 
-        // عرض النتيجة النهائية مع الرسالة المناسبة
         if (finalResult.result === "win") {
             const multiplier = Number(finalResult.multiplier) || 1;
             const winAmount = Math.max(0, Math.round(betAmount * multiplier));
@@ -478,7 +475,6 @@ async function startCrystal(
             return true;
         }
 
-        // retry - إعادة
         user.balance += betAmount;
         saveDb();
 
@@ -501,11 +497,10 @@ async function startCrystal(
 }
 
 // ============================================================
-// الروليت - مع كوولدوان 10 دقائق (معدل - يمنع إذا كان هناك صراحة نشطة)
+// الروليت - بدء
 // ============================================================
 
 async function startRoulette(sock, jid, msg, cleanSender, sender, db, saveDb, isBotOwner) {
-    // ✅ التحقق من وجود لعبة صراحة نشطة
     if (isSarahaActive(jid)) {
         await safeSend(sock, jid, {
             text: "⚠️ لا يمكن بدء الروليت أثناء وجود لعبة صراحة نشطة."
@@ -576,7 +571,7 @@ async function startRoulette(sock, jid, msg, cleanSender, sender, db, saveDb, is
 
 بعد وضع أول رهان، ينتظر صاحب رهان آخر بنفس القيمة أو أعلى بشرط ألا يتجاوز رصيد صاحب الفعالية.
 
-كل شخص يملك 🎈🎈🎈🎈 بالونات بحيث إذا وقع الحظ عليه ستفقع البالونة 💥 وعندما تفقع كل بالوناته يخسر رهانه، لكن إذا صمدت بالوناته يربح.
+كل شخص يملك 🎈🎈🎈 بالونات بحيث إذا وقع الحظ عليه ستفقع البالونة 💥 وعندما تفقع كل بالوناته يخسر رهانه، لكن إذا صمدت بالوناته يربح.
 
 مثال:
 ناغي كتب .رهان 100
@@ -604,7 +599,7 @@ async function startRoulette(sock, jid, msg, cleanSender, sender, db, saveDb, is
 }
 
 // ============================================================
-// بناء قائمة المشاركين في الروليت
+// بناء قائمة المشاركين في الروليت (3 بالونات)
 // ============================================================
 
 function buildRoulettePlayersList(casino) {
@@ -627,19 +622,19 @@ function buildRoulettePlayersList(casino) {
     let index = 0;
     
     for (const { number, player } of activePlayers) {
-        const lives = Number(player.lives) || 4;
-        const display = lives >= 4 ? "🎈🎈🎈🎈"
-            : lives === 3 ? "🎈🎈🎈💥"
-            : lives === 2 ? "🎈🎈💥💥"
-            : lives === 1 ? "🎈💥💥💥"
-            : "💀💀💀💀";
+        const lives = Number(player.lives) || 3;
+        // ⭐ 3 بالونات
+        const display = lives >= 3 ? "🎈🎈🎈"
+            : lives === 2 ? "🎈🎈💥"
+            : lives === 1 ? "🎈💥💥"
+            : "☠️☠️☠️";
         
         text += `${index + 1}. \`${player.nickname}\` ${display}\n`;
         index++;
     }
 
     for (const { number, player } of eliminatedPlayers) {
-        text += `${index + 1}. \`${player.nickname}\` 💀💀💀💀\n`;
+        text += `${index + 1}. \`${player.nickname}\` ☠️☠️☠️\n`;
         index++;
     }
 
@@ -730,23 +725,25 @@ function createRouletteRunner(sock, jid, casino, db) {
 ╝═════════════════╝`
             });
 
-            const winnerTag = `${winnerKey}@s.whatsapp.net`;
             const date = new Date();
             const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
             const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
 
             const dateText = `${days[date.getDay()]} | ${date.getDate()} | ${months[date.getMonth()]}`;
 
+            // ⭐ إعلان فوز الروليت باللقب
+            const winnerNickname = (winnerUser && String(winnerUser.nickname || "").trim()) || winnerKey;
+
             const adMessage = `_*█ إنــتــهــت█*_
 
 ◇🎮 نـــــــوع الفعالية:
 *{كازينو - روليت}*
 
-◇🪎 آلَــــجَــــآئـزة:
+◇🪎 آلَــــجَــــآئـزَة:
 *{ ${pool}$ }*
 
 ◇🎖️ آلَفــــــآئــز:
-@${winnerKey}
+*${winnerNickname}*
 
 ◇⏰ بّـــــــدأت:
 *{${dateText}}*
@@ -757,8 +754,8 @@ function createRouletteRunner(sock, jid, casino, db) {
             for (const adJid of Object.keys(db.adsGroups || {})) {
                 if (!db.adsGroups[adJid]) continue;
                 await sock.sendMessage(adJid, {
-                    text: adMessage,
-                    mentions: [winnerTag]
+                    text: adMessage
+                    // ⭐ لا mentions
                 }).catch(() => {});
             }
 
@@ -780,7 +777,8 @@ function createRouletteRunner(sock, jid, casino, db) {
             return;
         }
 
-        for (let i = 0; i < 12; i++) {
+        // ⭐ 8 دورات بدلاً من 12 + 900ms بدلاً من 500ms
+        for (let i = 0; i < 8; i++) {
             if (!running) return;
 
             const randomKey = activePlayers[Math.floor(Math.random() * activePlayers.length)];
@@ -794,7 +792,7 @@ function createRouletteRunner(sock, jid, casino, db) {
                 }).catch(() => {});
             }
 
-            await sleep(500);
+            await sleep(900);
         }
 
         if (!running) return;
@@ -914,7 +912,8 @@ async function handleRouletteStart(sock, jid, msg, senderNumber, owner, db) {
     const runner = createRouletteRunner(sock, jid, casino, db);
     casino.stopGame = runner.stopRunner;
 
-    setTimeout(runner.runRound, 2000);
+    // ⭐ 3 ثواني بدلاً من 2
+    setTimeout(runner.runRound, 3000);
     return true;
 }
 
