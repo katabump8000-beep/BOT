@@ -32,7 +32,7 @@ const logGuard = {
             this.count = 0;
             if (this.silenced) {
                 this.silenced = false;
-                _originalWarn(`⚠️ [LogGuard] تم استئناف السجلات. تم إسقاط ${this.dropped} سطر.`);
+                _originalWarn(`⚠️ [LogGuard] تم استئناف السجلات.`);
                 this.dropped = 0;
             }
         }
@@ -65,25 +65,13 @@ const {
     cleanNumber
 } = require("./bot");
 
-// ============================================================
-// Commands
-// ============================================================
-
 const { handleCommand } = require("./commands");
-
-// ============================================================
-// Admin
-// ============================================================
 
 const {
     handleGroupJoin,
     startAdminMonitoring,
     stopAdminMonitoring
 } = require("./admin");
-
-// ============================================================
-// Games
-// ============================================================
 
 const { activeGames } = require("./menu");
 const { activeCasinos, isSarahaActive } = require("./duel");
@@ -107,7 +95,6 @@ let autoSaveInterval = null;
 let autoSaveEnabled = false;
 let autoSaveGroupJid = null;
 
-// ⏱️ Watchdog
 let watchdogInterval = null;
 let lastMessageAt = Date.now();
 let lastGroupUpdateAt = Date.now();
@@ -128,7 +115,7 @@ const pendingGamesMenu = Object.create(null);
 global.pendingGamesMenu = pendingGamesMenu;
 
 // ============================================================
-// 🛡️ شبكة أمان مبسّطة
+// 🛡️ شبكة أمان
 // ============================================================
 
 let lastExceptionAt = 0;
@@ -214,7 +201,6 @@ async function handleGamesMenuSelection(sock, msg, jid, cleanSender, sender, db,
 
     const pending = global.pendingGamesMenu && global.pendingGamesMenu[jid];
 
-    // ✅ فقط صاحب الأمر .العاب يمكنه الاختيار
     if (!pending || pending.sender !== cleanSender) {
         await sock.sendMessage(jid, {
             text: "⚠️ هذه القائمة خاصة بصاحب الأمر `.العاب` فقط."
@@ -225,7 +211,7 @@ async function handleGamesMenuSelection(sock, msg, jid, cleanSender, sender, db,
     delete global.pendingGamesMenu[jid];
     const cmd = selectedId.replace("game_", "");
 
-    // حالة خاصة: كريستال - اطلب الرهان
+    // حالة كريستال
     if (cmd === "كريستال") {
         await sock.sendMessage(jid, {
             text: `*❉▬▬▬▬🎰▬▬▬▬❉*
@@ -237,34 +223,24 @@ async function handleGamesMenuSelection(sock, msg, jid, cleanSender, sender, db,
         return true;
     }
 
-    // حالة خاصة: روليت
-    if (cmd === "روليت") {
-        try {
-            await handleCommand(sock, jid, msg, {
-                db,
-                sender,
-                cleanSender,
-                isGroup,
-                isBotOwner: Boolean(owner),
-                botNumber,
-                text: ".روليت"
-            });
-        } catch (e) {
-            _originalError("List roulette error:", e?.message);
-        }
-        return true;
-    }
+    // تنفيذ الأمر تلقائياً عبر handleCommand
+    const fakeText = "." + cmd;
 
-    // تنفيذ الأمر تلقائياً
-    const fakeText = `.${cmd}`;
     try {
-        // أرسل الرسالة المزيفة أولاً
         const fakeMsg = {
             ...msg,
             message: {
                 conversation: fakeText
             }
         };
+
+        if (typeof handleCommand !== "function") {
+            _originalError("❌ handleCommand غير صالح - تحقق من commands.js");
+            await sock.sendMessage(jid, {
+                text: "⚠️ خطأ داخلي: لم يتم تحميل أمر الفعالية بشكل صحيح."
+            }, { quoted: msg }).catch(() => {});
+            return true;
+        }
 
         await handleCommand(sock, jid, fakeMsg, {
             db,
@@ -277,6 +253,9 @@ async function handleGamesMenuSelection(sock, msg, jid, cleanSender, sender, db,
         });
     } catch (e) {
         _originalError("List response error:", e?.message);
+        await sock.sendMessage(jid, {
+            text: "⚠️ حدث خطأ أثناء تشغيل الفعالية."
+        }, { quoted: msg }).catch(() => {});
     }
 
     return true;
@@ -298,7 +277,7 @@ function setupAdminMonitoring(sock) {
 }
 
 // ============================================================
-// ميزة حذف اللقب عند المغادرة
+// حذف اللقب عند المغادرة
 // ============================================================
 
 async function handleLeaveRemoveNickname(sock, update, db) {
@@ -368,8 +347,8 @@ async function sendDatabaseBackup(sock) {
 
         for (let i = 0; i < parts.length; i++) {
             const isLast = i === parts.length - 1;
-            const header = `📦 *نسخة احتياطية*\n🕐 ${timestamp}\n📊 جزء ${i + 1}/${parts.length}\n\n`;
-            const footer = isLast ? `\n\n✅ تم الحفظ ✅` : '';
+            const header = "📦 *نسخة احتياطية*\n🕐 " + timestamp + "\n📊 جزء " + (i + 1) + "/" + parts.length + "\n\n";
+            const footer = isLast ? "\n\n✅ تم الحفظ ✅" : '';
             await sock.sendMessage(autoSaveGroupJid, {
                 text: header + parts[i] + footer
             });
@@ -460,12 +439,7 @@ async function handleAutoReplies(sock, jid, msg, text, sender, cleanSender, db, 
 
 function getGamesDetailed() {
     const now = Date.now();
-    const details = {
-        total: 0,
-        stuck: 0,
-        healthy: 0,
-        list: []
-    };
+    const details = { total: 0, stuck: 0, healthy: 0, list: [] };
 
     const checkGame = (jid, game, name, ownTimeout) => {
         details.total++;
@@ -561,43 +535,8 @@ function stopSingleGame(entry) {
     } catch { return false; }
 }
 
-function forceStopAllGames() {
-    try {
-        for (const jid of Object.keys(activeGames || {})) {
-            try {
-                const g = activeGames[jid];
-                if (g && typeof g.stopGame === "function") g.stopGame();
-                else delete activeGames[jid];
-            } catch { delete activeGames[jid]; }
-        }
-        for (const jid of Object.keys(activeCasinos || {})) {
-            try {
-                const c = activeCasinos[jid];
-                if (c && typeof c.stopGame === "function") c.stopGame();
-                delete activeCasinos[jid];
-            } catch { delete activeCasinos[jid]; }
-        }
-        for (const jid of Object.keys(activeSaraha || {})) {
-            try { activeSaraha[jid]?.stopGame?.(); } catch {}
-            delete activeSaraha[jid];
-        }
-        for (const jid of Object.keys(activeColors || {})) {
-            try { activeColors[jid]?.stopGame?.(); } catch {}
-            delete activeColors[jid];
-        }
-        for (const jid of Object.keys(activeAnimals || {})) {
-            try { activeAnimals[jid]?.stopGame?.(); } catch {}
-            delete activeAnimals[jid];
-        }
-        for (const jid of Object.keys(activeMazads || {})) {
-            try { activeMazads[jid]?.stopMazad?.(); } catch {}
-            delete activeMazads[jid];
-        }
-    } catch {}
-}
-
 // ============================================================
-// 🆘 نظام الاستراحة التفاعلي
+// 🆘 نظام الاستراحة
 // ============================================================
 
 const restRequests = Object.create(null);
@@ -621,7 +560,7 @@ async function requestRestInGroup(sock, jid, reason = "ضغط هائل") {
 
             if (stuck.length > 0) {
                 await sock.sendMessage(jid, {
-                    text: `⏰ انتهت المهلة دون استجابة.\n🛑 تم إيقاف ${stuck.length} فعالية عالقة تلقائياً للحفاظ على البوت.`
+                    text: `⏰ انتهت المهلة دون استجابة.\n🛑 تم إيقاف ${stuck.length} فعالية عالقة تلقائياً.`
                 }).catch(() => {});
             }
 
@@ -785,9 +724,7 @@ function createHandlers() {
                         const botNumber = getBotNumber(sock);
                         const owner = isOwner(cleanSender, sock, msg);
 
-                        // ============================================
                         // 🎮 معالجة اختيار الفعالية من قائمة .العاب
-                        // ============================================
                         if (msg.message?.listResponseMessage) {
                             const handled = await handleGamesMenuSelection(
                                 sock, msg, jid, cleanSender, sender, db, owner, botNumber, isGroup
@@ -804,17 +741,13 @@ function createHandlers() {
                             continue;
                         }
 
-                        // ============================================
-                        // 🆘 .استراحة (يستجيب لأي عضو)
-                        // ============================================
+                        // 🆘 .استراحة
                         if (text === ".استراحة") {
                             await handleRestCommand(sock, jid, msg, db);
                             continue;
                         }
 
-                        // ============================================
                         // .حفظ
-                        // ============================================
                         if (text === ".حفظ" || text.startsWith(".حفظ ")) {
                             const parts = text.split(/\s+/);
                             const action = parts.length > 1 ? parts[1].toLowerCase() : "";
@@ -830,26 +763,24 @@ function createHandlers() {
                                 saveDb();
                                 startAutoSave(sock, jid);
                                 await sock.sendMessage(jid, {
-                                    text: `✅ *تم تفعيل الحفظ التلقائي*\n🕐 كل 4 ساعات\n📌 أول نسخة خلال 3 ثواني.`
+                                    text: "✅ *تم تفعيل الحفظ التلقائي*\n🕐 كل 4 ساعات"
                                 }, { quoted: msg });
                             } else if (action === "off") {
                                 db.autoSaveEnabled = false;
                                 db.autoSaveGroupJid = null;
                                 saveDb();
                                 stopAutoSave();
-                                await sock.sendMessage(jid, { text: `❌ تم إيقاف الحفظ التلقائي` }, { quoted: msg });
+                                await sock.sendMessage(jid, { text: "❌ تم إيقاف الحفظ التلقائي" }, { quoted: msg });
                             } else {
                                 const status = db.autoSaveEnabled ? "🟢 مفعّل" : "🔴 غير مفعّل";
                                 await sock.sendMessage(jid, {
-                                    text: `📊 الحالة: ${status}\n.حفظ on / off`
+                                    text: "📊 الحالة: " + status + "\n.حفظ on / off"
                                 }, { quoted: msg });
                             }
                             continue;
                         }
 
-                        // ============================================
-                        // .548484 (منشئ مزاد)
-                        // ============================================
+                        // .548484
                         if (text === ".548484") {
                             try { await sock.sendMessage(jid, { delete: msg.key }); } catch {}
                             if (!owner) {
@@ -862,9 +793,7 @@ function createHandlers() {
                             continue;
                         }
 
-                        // ============================================
                         // المزاد
-                        // ============================================
                         if (text === ".مزاد") {
                             if (await handleMazadCommand(sock, jid, msg, db, saveDb, cleanSender, owner)) continue;
                         }
@@ -889,9 +818,7 @@ function createHandlers() {
                             if (await handleMazadCancelSend(sock, jid, msg, db, saveDb, cleanSender)) continue;
                         }
 
-                        // ============================================
                         // الألعاب الخاصة
-                        // ============================================
                         if (text === ".صراحة") {
                             if (await handleSarahaCommand(sock, jid, msg, db, saveDb, cleanSender, owner)) continue;
                         }
@@ -904,9 +831,7 @@ function createHandlers() {
                             if (await handleAnimalsCommand(sock, jid, msg, db, saveDb, cleanSender, owner)) continue;
                         }
 
-                        // ============================================
                         // باقي الأوامر
-                        // ============================================
                         await handleCommand(sock, jid, msg, {
                             db,
                             sender,
@@ -960,10 +885,6 @@ async function main() {
 }
 
 main().catch(e => _originalError("Fatal:", e?.message));
-
-// ============================================================
-// 🛑 إيقاف نظيف
-// ============================================================
 
 process.once("SIGINT", () => {
     stopWatchdog();
