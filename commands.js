@@ -175,6 +175,9 @@ async function handleEmergencyStop(sock, jid, msg, owner) {
     return true;
 }
 
+// ============================================================
+// 🎮 .العاب - بأزرار تفاعلية حقيقية
+// ============================================================
 async function handleGamesList(sock, jid, msg, senderNumber) {
     pendingGamesMenu[jid] = { sender: senderNumber, timestamp: Date.now() };
     setTimeout(() => {
@@ -182,34 +185,77 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
     }, 5 * 60 * 1000);
 
     const headerText = "❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆\n     `رجاءاً قم بتحديد الفعالية:`\n❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆";
-    const sections = [{
-        title: "🎮 الفعاليات المتاحة",
-        rows: [
-            { title: "⏣⊰ تفكـ🧩ـــيك ⊱⏣", rowId: "game_تفكيك" },
-            { title: "⏣⊰ كــتــ✍️ــابـة ⊱⏣", rowId: "game_كتابة" },
-            { title: "⏣⊰ ألــــ🎨ـــوان ⊱⏣", rowId: "game_الوان" },
-            { title: "⏣⊰ صــ🫣ــراحة ⊱⏣", rowId: "game_صراحة" },
-            { title: "⏣⊰ الـحـ🦊ـيوانات ⊱⏣", rowId: "game_الحيوانات" },
-            { title: "⏣⊰ أعـــ🚩ــلام ⊱⏣", rowId: "game_اعلام" },
-            { title: "⏣⊰ إيمـــ😀ــوجي ⊱⏣", rowId: "game_ايموجي" },
-            { title: "❆━═🎲 روليت 🎰═━❆", rowId: "game_روليت" },
-            { title: "❆━═🎲 كريستال 🎰═━❆", rowId: "game_كريستال" }
-        ]
-    }];
 
-    const listMessage = {
-        text: headerText,
-        footer: "اختر الفعالية ثم اضغط على الخيار",
-        title: "تحديد الفعالية",
-        buttonText: "👈 تحديد 👉",
-        sections: sections
+    const rows = [
+        { title: "⏣⊰ تفكـ🧩ـــيك ⊱⏣", id: "game_تفكيك", description: "لعبة التفكيك" },
+        { title: "⏣⊰ كــتــ✍️ــابـة ⊱⏣", id: "game_كتابة", description: "لعبة الكتابة" },
+        { title: "⏣⊰ ألــــ🎨ـــوان ⊱⏣", id: "game_الوان", description: "لعبة الألوان" },
+        { title: "⏣⊰ صــ🫣ــراحة ⊱⏣", id: "game_صراحة", description: "لعبة الصراحة" },
+        { title: "⏣⊰ الـحـ🦊ـيوانات ⊱⏣", id: "game_الحيوانات", description: "لعبة الحيوانات" },
+        { title: "⏣⊰ أعـــ🚩ــلام ⊱⏣", id: "game_اعلام", description: "لعبة الأعلام" },
+        { title: "⏣⊰ إيمـــ😀ــوجي ⊱⏣", id: "game_ايموجي", description: "لعبة الإيموجي" },
+        { title: "❆━═🎲 روليت 🎰═━❆", id: "game_روليت", description: "لعبة الروليت" },
+        { title: "❆━═🎲 كريستال 🎰═━❆", id: "game_كريستال", description: "لعبة الكريستال" }
+    ];
+
+    // المحاولة 1: الصيغة الحديثة (interactiveMessage)
+    const interactiveMessage = {
+        viewOnceMessage: {
+            message: {
+                interactiveMessage: {
+                    body: { text: headerText },
+                    footer: { text: "اختر الفعالية من القائمة" },
+                    header: { title: "تحديد الفعالية", hasMediaAttachment: false },
+                    nativeFlowMessage: {
+                        buttons: [
+                            {
+                                name: "single_select",
+                                buttonParamsJson: JSON.stringify({
+                                    title: "👈 تحديد 👉",
+                                    sections: [
+                                        { title: "🎮 الفعاليات المتاحة", rows: rows }
+                                    ]
+                                })
+                            }
+                        ],
+                        messageParamsJson: ""
+                    }
+                }
+            }
+        }
     };
 
-    try { await sock.sendMessage(jid, listMessage, { quoted: msg }); }
-    catch (e) {
-        const fallback = headerText + "\n\n🧩 .تفكيك\n✍️ .كتابة\n🎨 .الوان\n🫣 .صراحة\n🦊 .الحيوانات\n🚩 .اعلام\n😀 .ايموجي\n🎰 .روليت\n🎰 .كريستال";
-        await sendText(sock, jid, fallback, msg);
+    try {
+        await sock.sendMessage(jid, interactiveMessage, { quoted: msg });
+        return true;
+    } catch (e1) {
+        console.error("❌ InteractiveMessage failed:", e1?.message);
     }
+
+    // المحاولة 2: الصيغة القديمة (listMessage)
+    try {
+        const listMessage = {
+            text: headerText,
+            footer: "اختر الفعالية ثم اضغط على الخيار",
+            title: "تحديد الفعالية",
+            buttonText: "👈 تحديد 👉",
+            sections: [
+                {
+                    title: "🎮 الفعاليات المتاحة",
+                    rows: rows.map(r => ({ title: r.title, rowId: r.id }))
+                }
+            ]
+        };
+        await sock.sendMessage(jid, listMessage, { quoted: msg });
+        return true;
+    } catch (e2) {
+        console.error("❌ ListMessage failed:", e2?.message);
+    }
+
+    // المحاولة 3: Fallback نصي
+    const fallback = headerText + "\n\n🧩 .تفكيك\n✍️ .كتابة\n🎨 .الوان\n🫣 .صراحة\n🦊 .الحيوانات\n🚩 .اعلام\n😀 .ايموجي\n🎰 .روليت\n🎰 .كريستال";
+    await sendText(sock, jid, fallback, msg);
+
     return true;
 }
 
