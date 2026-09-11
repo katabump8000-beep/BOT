@@ -1,0 +1,478 @@
+{
+  "groupSettings": {
+    "8562087511191@s.whatsapp.net": {
+      "protection": false,
+      "leave": false,
+      "monitoring": false,
+      "emoji": false,
+      "antiMention": false,
+      "antiZarf": false,
+      "supportActive": false,
+      "filters": {
+        "link": true,
+        "badword": true,
+        "image": true,
+        "sticker": true,
+        "lang": true,
+        "emoji": true
+      }
+    },
+    "120363429110434885@g.us": {
+      "supportActive": false,
+      "antiMention": false,
+      "antiZarf": false,
+      "filters": {
+        "link": true,
+        "badword": true,
+        "image": true,
+        "sticker": true,
+        "lang": true,
+        "emoji": true
+      },
+      "protection": true,
+      "monitoring": true
+    },
+    "120363414055337881@g.us": {
+      "supportActive": false,
+      "antiMention": false,
+      "antiZarf": true,
+      "filters": {
+        "link": true,
+        "badword": true,
+        "image": true,
+        "sticker": true,
+        "lang": false,
+        "emoji": true
+      },
+      "protection": true,
+      "monitoring": true
+    },
+    "120363430431631759@g.us": {
+      "protection": false,
+      "leave": false,
+      "monitoring": false,
+      "emoji": false,
+      "antiMention": false,
+      "antiZarf": false,
+      "supportActive": false,
+      "filters": {
+        "link": true,
+        "badword": true,
+        "image": true,
+        "sticker": true,
+        "lang": true,
+        "emoji": true
+      }
+    },
+    "120363430648823695@g.us": {
+      "protection": false,
+      "leave": false,
+      "monitoring": false,
+      "emoji": false,
+      "antiMention": false,
+      "antiZarf": false,
+      "supportActive": false,
+      "filters": {
+        "link": true,
+        "badword": true,
+        "image": true,
+        "sticker": true,
+        "lang": true,
+        "emoji": true
+      }
+    }
+  },
+  "adsGroups": {
+    "120363430648823695@g.us": true
+  },
+  "bankGroups": {
+    "120363430431631759@g.us": true
+  },
+  "workGroups": {},
+  "receiveGroups": {},
+  "cooldowns": {},
+  "users": {
+    "93527811833871": {
+      "balance": 372,
+      "nickname": "روبي",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": "ايتاتشي"
+    },
+    "1954763767962": {
+      "balance": 6041,
+      "nickname": "ككاشي",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "124468773036057": {
+      "balance": 50,
+      "nickname": "ارواراكا",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "81497742643328": {
+      "balance": 861,
+      "nickname": "لاك",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "138195471728731": {
+      "balance": 999999999899,
+      "nickname": "آلَجَيـــــــّسـي",
+      "rank": "آلَآمِـــــبّــ@♛ـــراطور",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "152665149419590": {
+      "balance": 3108,
+      "nickname": "ايتاتشي",
+      "rank": "تُــــشـــيــّبّــــوُكاي",
+      "maxInteraction": 0,
+      "friend": "روبي"
+    },
+    "110591767273686": {
+      "balance": 14500,
+      "nickname": "إيروين",
+      "rank": "آلَجَنـــــــٌرال آلَثًـــآنــــٌي",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "185225481064568": {
+      "balance": 0,
+      "nickname": "فايوليت",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "137851857572050": {
+      "balance": 0,
+      "nickname": "ناروتو",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "160284270424266": {
+      "balance": 400,
+      "nickname": "ايساغي",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "173969881694378": {
+      "balance": 5000,
+      "nickname": "اكسيليتور",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "155689074827319": {
+      "balance": 300,
+      "nickname": "فيجيتا",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "42366245314800": {
+      "balance": 386,
+      "nickname": "ناغاتو",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "204475474120734": {
+      "balance": 0,
+      "nickname": "شيسوي",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "55358420738155": {
+      "balance": 0,
+      "nickname": "ثورفين",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "148022474322076": {
+      "balance": 0,
+      "nickname": "ايرين",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "15926208499811": {
+      "balance": 0,
+      "nickname": "مادارا",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "180354954567746": {
+      "balance": 0,
+      "nickname": "ساي",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "106288377790512": {
+      "balance": 50,
+      "nickname": "ثراغ",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "215638194794703": {
+      "balance": 0,
+      "nickname": "كرولو",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "200000269209688": {
+      "balance": 0,
+      "nickname": "شادو",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "154499251454159": {
+      "balance": 0,
+      "nickname": "فيدل",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "4046630957135": {
+      "balance": 0,
+      "nickname": "جوهان",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "9496877355053": {
+      "balance": 86,
+      "nickname": "ايزن",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "249211215937596": {
+      "balance": 0,
+      "nickname": "ايتشيغو",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "50535071793351": {
+      "balance": 0,
+      "nickname": "",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "126577316757545": {
+      "balance": 0,
+      "nickname": "نوريكو",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "105158717481064": {
+      "balance": 0,
+      "nickname": "غابيمارو",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "117583403593752": {
+      "balance": 55,
+      "nickname": "لايت",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "45514288529589": {
+      "balance": 2870,
+      "nickname": "غوكو",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "6447081459892": {
+      "balance": 1419,
+      "nickname": "تشوبر",
+      "rank": "آلَمِـــــلَآزمِ آلَثًـــآنــــٌي",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "135215032877087": {
+      "balance": 175,
+      "nickname": "كيرا",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "94601906008064": {
+      "balance": 0,
+      "nickname": "",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "280577831886948": {
+      "balance": 350,
+      "nickname": "ساكورا",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    },
+    "82317980749931": {
+      "balance": 0,
+      "nickname": "سانيمي",
+      "rank": "",
+      "maxInteraction": 0,
+      "friend": ""
+    }
+  },
+  "admins": {},
+  "permissions": {
+    "1": [
+      "138195471728731",
+      "248937260818433",
+      "135215032877087"
+    ],
+    "2": [
+      "135215032877087",
+      "110591767273686",
+      "152665149419590",
+      "248937260818433",
+      "1954763767962",
+      "138195471728731"
+    ],
+    "3": [
+      "138195471728731",
+      "110591767273686"
+    ],
+    "4": [
+      "135215032877087",
+      "138195471728731",
+      "110591767273686",
+      "248937260818433"
+    ]
+  },
+  "gamePermissions": [
+    "135215032877087",
+    "138195471728731",
+    "1954763767962",
+    "137851857572050",
+    "81497742643328"
+  ],
+  "gameCooldown": {
+    "120363414055337881@g.us": 1788695549978
+  },
+  "monitoredUsers": {},
+  "dailyData": {
+    "152665149419590": {
+      "day": 7,
+      "lastClaim": 1788669911070
+    },
+    "110591767273686": {
+      "day": 7,
+      "lastClaim": 0
+    },
+    "135215032877087": {
+      "day": 5,
+      "lastClaim": 1788672494753
+    },
+    "93527811833871": {
+      "day": 1,
+      "lastClaim": 1788669951607
+    },
+    "117583403593752": {
+      "day": 1,
+      "lastClaim": 1788672464044
+    },
+    "45514288529589": {
+      "day": 6,
+      "lastClaim": 1788683610956
+    },
+    "6447081459892": {
+      "day": 1,
+      "lastClaim": 1788688136947
+    },
+    "42366245314800": {
+      "day": 1,
+      "lastClaim": 1788688343151
+    },
+    "1954763767962": {
+      "day": 1,
+      "lastClaim": 1788689708162
+    }
+  },
+  "dailyCooldown": {
+    "152665149419590": 1788669911070,
+    "93527811833871": 1788669951607,
+    "117583403593752": 1788672464044,
+    "135215032877087": 1788672494753,
+    "45514288529589": 1788683610956,
+    "6447081459892": 1788688136947,
+    "42366245314800": 1788688343151,
+    "1954763767962": 1788689708162
+  },
+  "chainPermissions": [],
+  "rouletteCooldown": {
+    "120363414055337881@g.us": 1788695496416
+  },
+  "crystalCooldown": {
+    "120363414055337881@g.us": 1788697450826
+  },
+  "crystalPlayerCooldown": {
+    "93527811833871": 1788672865658,
+    "135215032877087": 1788672899731,
+    "6447081459892": 1788692194767,
+    "152665149419590": 1788676433274,
+    "45514288529589": 1788683848350,
+    "9496877355053": 1788692720350,
+    "42366245314800": 1788695744055,
+    "1954763767962": 1788691890471,
+    "110591767273686": 1788697450826
+  },
+  "pendingSend": {},
+  "mazadCreator": null,
+  "inventory": {},
+  "authorizedUsers": {},
+  "globalAuthorized": {
+    "138195471728731@lid": true,
+    "110591767273686@lid": true
+  },
+  "reportGroup": null,
+  "exceptions": {
+    "120363429110434885@g.us": {
+      "135215032877087@lid": true,
+      "138195471728731@lid": true
+    },
+    "120363414055337881@g.us": {
+      "106288377790512@lid": true,
+      "110591767273686@lid": true,
+      "1954763767962@lid": true,
+      "138195471728731@lid": true,
+      "135215032877087@lid": true,
+      "58859070701590@lid": true
+    }
+  },
+  "autoSaveEnabled": true,
+  "autoSaveGroupJid": "120363412792652060@g.us",
+  "organizedGroups": {
+    "120363414055337881@g.us": true
+  },
+  "ahaEnabled": {
+    "120363414055337881@g.us": true
+  },
+  "ahaCooldown": {
+    "120363414055337881@g.us": 1788697458748
+  }
+}
