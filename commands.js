@@ -1,7 +1,7 @@
 // ============================================================
 // commands.js
 // ALJESAT BOT
-// Command Router / Economy / Games / Casino (معدل)
+// Command Router / Economy / Games / Casino
 // ============================================================
 
 "use strict";
@@ -78,10 +78,6 @@ const {
 
 let globalGameBlockUntil = 0;
 
-// ============================================================
-// 🎮 قائمة انتظار .العاب
-// ============================================================
-
 const pendingGamesMenu = global.pendingGamesMenu || (global.pendingGamesMenu = Object.create(null));
 
 // ============================================================
@@ -128,7 +124,7 @@ function getCommand(text) {
 }
 
 // ============================================================
-// دعم الأوامر بدون نقطة والأخطاء الإملائية
+// دعم الأوامر بدون نقطة
 // ============================================================
 
 function getNormalizedCommand(text) {
@@ -159,7 +155,7 @@ function getNormalizedCommand(text) {
 }
 
 // ============================================================
-// دالة التحقق من تشابه الألقاب
+// تشابه الألقاب
 // ============================================================
 
 function isSimilarNickname(existing, newName) {
@@ -256,21 +252,12 @@ function findUserByNickname(db, nickname) {
 }
 
 function findUserByNicknameForFriend(db, nickname) {
-    const wanted = String(nickname || "").trim();
-    if (!wanted) return null;
-
-    for (const number of Object.keys(db.users || {})) {
-        const user = db.users[number];
-        if (user && String(user.nickname || "").trim() === wanted) {
-            return { number, user };
-        }
-    }
-    return null;
+    return findUserByNickname(db, nickname);
 }
 
 function userMention(number) {
     const clean = cleanNumber(number);
-    return clean ? `${clean}@s.whatsapp.net` : "";
+    return clean ? clean + "@s.whatsapp.net" : "";
 }
 
 // ============================================================
@@ -315,12 +302,8 @@ async function checkGameContext(sock, jid, msg, isGroup) {
 
     if (Date.now() < globalGameBlockUntil) {
         const left = Math.max(1, Math.ceil((globalGameBlockUntil - Date.now()) / 60000));
-        await sendText(
-            sock,
-            jid,
-            `⚠️ الفعاليات متوقفة حالياً. يرجى الانتظار ${left} دقيقة.`,
-            msg
-        );
+        const text = "⚠️ الفعاليات متوقفة حالياً. يرجى الانتظار " + left + " دقيقة.";
+        await sendText(sock, jid, text, msg);
         return false;
     }
 
@@ -328,7 +311,7 @@ async function checkGameContext(sock, jid, msg, isGroup) {
 }
 
 // ============================================================
-// إيقاف كل الألعاب والكازينو
+// إيقاف كل الألعاب
 // ============================================================
 
 function stopAllGames() {
@@ -341,7 +324,7 @@ function stopAllGames() {
                 delete activeGames[gameJid];
             }
         } catch (error) {
-            console.error(`❌ خطأ أثناء إيقاف اللعبة ${gameJid}:`, error?.message || error);
+            console.error("خطأ في إيقاف اللعبة:", error?.message);
             delete activeGames[gameJid];
         }
     }
@@ -372,28 +355,19 @@ async function handleEmergencyStop(sock, jid, msg, owner) {
     stopAllGames();
     stopAllCasinos();
 
-    for (const jid of Object.keys(activeSaraha || {})) {
-        try {
-            stopSarahaGame(jid);
-        } catch (_) {}
+    for (const gJid of Object.keys(activeSaraha || {})) {
+        try { stopSarahaGame(gJid); } catch (_) {}
     }
-
-    for (const jid of Object.keys(activeColors || {})) {
-        try {
-            stopColorsGame(jid);
-        } catch (_) {}
+    for (const gJid of Object.keys(activeColors || {})) {
+        try { stopColorsGame(gJid); } catch (_) {}
     }
-
-    for (const jid of Object.keys(activeAnimals || {})) {
-        try {
-            stopAnimalsGame(jid);
-        } catch (_) {}
+    for (const gJid of Object.keys(activeAnimals || {})) {
+        try { stopAnimalsGame(gJid); } catch (_) {}
     }
-
-    for (const jid of Object.keys(activeMazads || {})) {
+    for (const mJid of Object.keys(activeMazads || {})) {
         try {
-            if (activeMazads[jid] && typeof activeMazads[jid].stopMazad === "function") {
-                activeMazads[jid].stopMazad();
+            if (activeMazads[mJid] && typeof activeMazads[mJid].stopMazad === "function") {
+                activeMazads[mJid].stopMazad();
             }
         } catch (_) {}
     }
@@ -402,22 +376,22 @@ async function handleEmergencyStop(sock, jid, msg, owner) {
 }
 
 // ============================================================
-// 🎮 .العاب - قائمة تفاعلية بزر تحديد
+// .العاب
 // ============================================================
 
 async function handleGamesList(sock, jid, msg, senderNumber) {
-    // حفظ صاحب الطلب
     pendingGamesMenu[jid] = {
         sender: senderNumber,
         timestamp: Date.now()
     };
 
-    // تنظيف تلقائي بعد 5 دقائق
     setTimeout(() => {
         if (pendingGamesMenu[jid] && pendingGamesMenu[jid].sender === senderNumber) {
             delete pendingGamesMenu[jid];
         }
     }, 5 * 60 * 1000);
+
+    const headerText = "❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆\n     `رجاءاً قم بتحديد الفعالية:`\n❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆";
 
     const sections = [
         {
@@ -437,9 +411,7 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
     ];
 
     const listMessage = {
-        text: `❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆
-     \`رجاءاً قم بتحديد الفعالية:\`
-❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆`,
+        text: headerText,
         footer: "اختر الفعالية ثم اضغط على الخيار",
         title: "تحديد الفعالية",
         buttonText: "👈 تحديد 👉",
@@ -449,24 +421,9 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
     try {
         await sock.sendMessage(jid, listMessage, { quoted: msg });
     } catch (e) {
-        console.error("❌ فشل إرسال قائمة الألعاب:", e?.message);
-        // Fallback نصي
-        await sendText(sock, jid,
-            `❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆
-     \`رجاءاً قم بتحديد الفعالية:\`
-❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆
-
-🧩 .تفكيك
-✍️ .كتابة
-🎨 .الوان
-🫣 .صراحة
-🦊 .الحيوانات
-🚩 .اعلام
-😀 .ايموجي
-🎰 .روليت
-🎰 .كريستال`,
-            msg
-        );
+        console.error("فشل إرسال قائمة الألعاب:", e?.message);
+        const fallback = headerText + "\n\n🧩 .تفكيك\n✍️ .كتابة\n🎨 .الوان\n🫣 .صراحة\n🦊 .الحيوانات\n🚩 .اعلام\n😀 .ايموجي\n🎰 .روليت\n🎰 .كريستال";
+        await sendText(sock, jid, fallback, msg);
     }
 
     return true;
@@ -482,16 +439,12 @@ async function handleCasinoMenu(sock, jid, msg) {
         return true;
     }
 
-    const text = `╮─❖『 الكازينو 』❖─╭
-
-🎰 مرحباً بك في الكازينو!
-
-📋 *اختر نوع اللعبة:*
-
-• .روليت - لعبة الدبوس والبالونات 🎈
-• .الكرستال - لعبة الكريستال 💎
-
-╰─❖『 اختر ما يناسبك 』❖─╯`;
+    const text = "╮─❖『 الكازينو 』❖─╭\n\n" +
+        "🎰 مرحباً بك في الكازينو!\n\n" +
+        "📋 *اختر نوع اللعبة:*\n\n" +
+        "• .روليت - لعبة الدبوس والبالونات 🎈\n" +
+        "• .الكرستال - لعبة الكريستال 💎\n\n" +
+        "╰─❖『 اختر ما يناسبك 』❖─╯";
 
     await sendText(sock, jid, text, msg);
     return true;
@@ -510,7 +463,7 @@ async function handleTitles(sock, jid, msg, db) {
         const user = users[number];
         if (user && String(user.nickname || "").trim()) {
             titles.push({ nickname: user.nickname, user: number });
-            mentions.push(`${number}@s.whatsapp.net`);
+            mentions.push(number + "@s.whatsapp.net");
         }
     }
 
@@ -521,7 +474,7 @@ async function handleTitles(sock, jid, msg, db) {
 
     let text = "◆━─━─━─⊱🪪⊰─━─━─━◆\n";
     titles.forEach((item, index) => {
-        text += `${index + 1} *☜* ${item.nickname}\n`;
+        text += (index + 1) + " *☜* " + item.nickname + "\n";
     });
     text += "◆━─━─━─⊱📜⊰─━─━─━◆";
 
@@ -535,12 +488,7 @@ async function handleTitles(sock, jid, msg, db) {
 
 async function handleRegister(sock, jid, msg, parts, senderNumber, owner, db) {
     if (!hasPermission(senderNumber, "2", owner)) {
-        await sendText(
-            sock,
-            jid,
-            "❌ ليس لديك صلاحية لاستخدام أمر .سجل (يجب منحها لك عبر .سماح 2).",
-            msg
-        );
+        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .سجل (يجب منحها لك عبر .سماح 2).", msg);
         return true;
     }
 
@@ -563,12 +511,8 @@ async function handleRegister(sock, jid, msg, parts, senderNumber, owner, db) {
         if (!existingUser || !existingUser.nickname) continue;
         
         if (isSimilarNickname(existingUser.nickname, nickname)) {
-            await sendText(
-                sock,
-                jid,
-                `⚠️ اللقب \`${nickname}\` مشابه للقب مسجل مسبقاً: \`${existingUser.nickname}\`\n❌ يرجى اختيار لقب مختلف.`,
-                msg
-            );
+            const warnText = "⚠️ اللقب `" + nickname + "` مشابه للقب مسجل مسبقاً: `" + existingUser.nickname + "`\n❌ يرجى اختيار لقب مختلف.";
+            await sendText(sock, jid, warnText, msg);
             return true;
         }
     }
@@ -577,18 +521,13 @@ async function handleRegister(sock, jid, msg, parts, senderNumber, owner, db) {
     user.nickname = nickname;
     saveDb();
 
-    await sendText(
-        sock,
-        jid,
-        `👑◈══════════════◈👑
-✅ تم تسجيل لقب العضو بنجاح
-🏷️ اللقب الجديد: [${nickname}]
+    const successMsg = "👑◈══════════════◈👑\n" +
+        "✅ تم تسجيل لقب العضو بنجاح\n" +
+        "🏷️ اللقب الجديد: [" + nickname + "]\n\n" +
+        "بالتوفيق ان شاء الله 💼\n" +
+        "👑◈══════════════◈👑";
 
-بالتوفيق ان شاء الله 💼
-👑◈══════════════◈👑`,
-        msg
-    );
-
+    await sendText(sock, jid, successMsg, msg);
     return true;
 }
 
@@ -610,26 +549,20 @@ async function handleDeleteTitle(sock, jid, msg, parts, senderNumber, owner, db)
 
     const found = findUserByNickname(db, nickname);
     if (!found) {
-        await sendText(sock, jid, `❌ لم يتم العثور على اللقب: [${nickname}]`, msg);
+        await sendText(sock, jid, "❌ لم يتم العثور على اللقب: [" + nickname + "]", msg);
         return true;
     }
 
     found.user.nickname = "";
     saveDb();
 
-    await sendText(
-        sock,
-        jid,
-        `🚫◈═══『 إزالة لقب 』═══◈🚫
-⚠️ تم حذف اللقب بنجاح ✅
-🏷️ اللقب المحذوف: [${nickname}]
+    const delMsg = "🚫◈═══『 إزالة لقب 』═══◈🚫\n" +
+        "⚠️ تم حذف اللقب بنجاح ✅\n" +
+        "🏷️ اللقب المحذوف: [" + nickname + "]\n\n" +
+        "بواسطة: @" + senderNumber + "\n" +
+        "⛔◈══════════════◈⛔";
 
-بواسطة: @${senderNumber}
-⛔◈══════════════◈⛔`,
-        msg,
-        { mentions: [userMention(senderNumber)] }
-    );
-
+    await sendText(sock, jid, delMsg, msg, { mentions: [userMention(senderNumber)] });
     return true;
 }
 
@@ -639,12 +572,7 @@ async function handleDeleteTitle(sock, jid, msg, parts, senderNumber, owner, db)
 
 async function handleFriendRelation(sock, jid, msg, parts, senderNumber, owner, db, saveDb) {
     if (!hasPermission(senderNumber, "1", owner)) {
-        await sendText(
-            sock,
-            jid,
-            "❌ ليس لديك صلاحية لاستخدام أمر .علاقة (يجب منحها لك عبر .سماح 1).",
-            msg
-        );
+        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .علاقة (يجب منحها لك عبر .سماح 1).", msg);
         return true;
     }
 
@@ -652,12 +580,7 @@ async function handleFriendRelation(sock, jid, msg, parts, senderNumber, owner, 
     const match = text.match(/\.علاقة\s+([^\s]+)\s+مع\s+([^\s]+)/);
     
     if (!match) {
-        await sendText(
-            sock,
-            jid,
-            "⚠️ الاستخدام الصحيح: .علاقة لقب1 مع لقب2",
-            msg
-        );
+        await sendText(sock, jid, "⚠️ الاستخدام الصحيح: .علاقة لقب1 مع لقب2", msg);
         return true;
     }
 
@@ -673,15 +596,13 @@ async function handleFriendRelation(sock, jid, msg, parts, senderNumber, owner, 
     const user2 = findUserByNicknameForFriend(db, nickname2);
 
     if (!user1) {
-        await sendText(sock, jid, `❌ لم يتم العثور على اللقب: [${nickname1}]`, msg);
+        await sendText(sock, jid, "❌ لم يتم العثور على اللقب: [" + nickname1 + "]", msg);
         return true;
     }
-
     if (!user2) {
-        await sendText(sock, jid, `❌ لم يتم العثور على اللقب: [${nickname2}]`, msg);
+        await sendText(sock, jid, "❌ لم يتم العثور على اللقب: [" + nickname2 + "]", msg);
         return true;
     }
-
     if (user1.number === user2.number) {
         await sendText(sock, jid, "⚠️ لا يمكن ربط الشخص بنفسه.", msg);
         return true;
@@ -692,15 +613,11 @@ async function handleFriendRelation(sock, jid, msg, parts, senderNumber, owner, 
 
     u1.friend = nickname2;
     u2.friend = nickname1;
-
     saveDb();
 
-    try {
-        await sock.sendMessage(jid, { delete: msg.key });
-    } catch (_) {}
+    try { await sock.sendMessage(jid, { delete: msg.key }); } catch (_) {}
 
     await sendText(sock, jid, "✅ تم تحديث العلاقة بنجاح.", msg);
-
     return true;
 }
 
@@ -710,42 +627,16 @@ async function handleFriendRelation(sock, jid, msg, parts, senderNumber, owner, 
 
 async function handleMyDetails(sock, jid, msg, senderNumber, db) {
     const user = getUser(db, senderNumber);
+    const displayNickname = (user && String(user.nickname || "").trim()) || "غير مسجل";
+    const friendNickname = (user && String(user.friend || "").trim()) || "لا يوجد";
 
-    if (!user || !String(user.nickname || "").trim()) {
-        const displayNickname = "غير مسجل";
-        const friendNickname = String(user?.friend || "").trim() || "لا يوجد";
-
-        const text = `╗═════『   بياناتك  』═════╔
-
-💰 رصـــيـــــــدك:     \`{${user?.balance || 0}}\`
-
-🏷️ لقبك:    \`{${displayNickname}}\`
-
-🎖️ رتبتك:   \`{${user?.rank || "عضو"}}\`
-
-📈 أعلى تفاعل لك: \`{${user?.maxInteraction || 0}}\`
-
-🫂 صـــديق:  \`{${friendNickname}}\`
-╝════════════════════╚`;
-
-        await sendText(sock, jid, text, msg);
-        return true;
-    }
-
-    const friendNickname = String(user.friend || "").trim() || "لا يوجد";
-
-    const text = `╗═════『   بياناتك  』═════╔
-
-💰 رصـــيـــــــدك:     \`{${user.balance || 0}}\`
-
-🏷️ لقبك:    \`{${user.nickname}}\`
-
-🎖️ رتبتك:   \`{${user.rank || "عضو"}}\`
-
-📈 أعلى تفاعل لك: \`{${user.maxInteraction || 0}}\`
-
-🫂 صـــديق:  \`{${friendNickname}}\`
-╝════════════════════╚`;
+    const text = "╗═════『   بياناتك  』═════╔\n\n" +
+        "💰 رصـــيـــــــدك:     `{" + (user?.balance || 0) + "}`\n\n" +
+        "🏷️ لقبك:    `{" + displayNickname + "}`\n\n" +
+        "🎖️ رتبتك:   `{" + (user?.rank || "عضو") + "}`\n\n" +
+        "📈 أعلى تفاعل لك: `{" + (user?.maxInteraction || 0) + "}`\n\n" +
+        "🫂 صـــديق:  `{" + friendNickname + "}`\n" +
+        "╝════════════════════╚";
 
     await sendText(sock, jid, text, msg);
     return true;
@@ -773,19 +664,14 @@ async function handleUserDetails(sock, jid, msg, db) {
     const displayNickname = String(user.nickname || "").trim() || "غير مسجل";
     const friendNickname = String(user.friend || "").trim() || "لا يوجد";
 
-    const text = `╗═════『 بيانات العضو 』═════╔
-
-👤 العضو: @${target}
-💰 رصـــيـــــــده:     \`{${user.balance || 0}}\`
-
-🏷️ لقبه:    \`{${displayNickname}}\`
-
-🎖️ رتبته:   \`{${user.rank || "عضو"}}\`
-
-📈 أعلى تفاعل له: \`{${user.maxInteraction || 0}}\`
-
-🫂 صـــديق:  \`{${friendNickname}}\`
-╝════════════════════╚`;
+    const text = "╗═════『 بيانات العضو 』═════╔\n\n" +
+        "👤 العضو: @" + target + "\n" +
+        "💰 رصـــيـــــــده:     `{" + (user.balance || 0) + "}`\n\n" +
+        "🏷️ لقبه:    `{" + displayNickname + "}`\n\n" +
+        "🎖️ رتبته:   `{" + (user.rank || "عضو") + "}`\n\n" +
+        "📈 أعلى تفاعل له: `{" + (user.maxInteraction || 0) + "}`\n\n" +
+        "🫂 صـــديق:  `{" + friendNickname + "}`\n" +
+        "╝════════════════════╚";
 
     await sendText(sock, jid, text, msg, { mentions: [mentioned] });
     return true;
@@ -797,12 +683,7 @@ async function handleUserDetails(sock, jid, msg, db) {
 
 async function handleRank(sock, jid, msg, parts, senderNumber, owner, db) {
     if (!hasPermission(senderNumber, "3", owner)) {
-        await sendText(
-            sock,
-            jid,
-            "❌ ليس لديك صلاحية لاستخدام أمر .رتبته (يجب منحها لك عبر .سماح 3).",
-            msg
-        );
+        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .رتبته (يجب منحها لك عبر .سماح 3).", msg);
         return true;
     }
 
@@ -824,7 +705,7 @@ async function handleRank(sock, jid, msg, parts, senderNumber, owner, db) {
     user.rank = rank;
     saveDb();
 
-    await sendText(sock, jid, `✅ تم تحديث رتبة العضو إلى: [${rank}]`, msg);
+    await sendText(sock, jid, "✅ تم تحديث رتبة العضو إلى: [" + rank + "]", msg);
     return true;
 }
 
@@ -834,12 +715,7 @@ async function handleRank(sock, jid, msg, parts, senderNumber, owner, db) {
 
 async function handleInteraction(sock, jid, msg, parts, senderNumber, owner, db) {
     if (!hasPermission(senderNumber, "4", owner)) {
-        await sendText(
-            sock,
-            jid,
-            "❌ ليس لديك صلاحية لاستخدام أمر .تفاعله (يجب منحها لك عبر .سماح 4).",
-            msg
-        );
+        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .تفاعله (يجب منحها لك عبر .سماح 4).", msg);
         return true;
     }
 
@@ -861,7 +737,7 @@ async function handleInteraction(sock, jid, msg, parts, senderNumber, owner, db)
     user.maxInteraction = amount;
     saveDb();
 
-    await sendText(sock, jid, `✅ تم تحديث أعلى تفاعل للعضو إلى: [${amount}]`, msg);
+    await sendText(sock, jid, "✅ تم تحديث أعلى تفاعل للعضو إلى: [" + amount + "]", msg);
     return true;
 }
 
@@ -871,12 +747,7 @@ async function handleInteraction(sock, jid, msg, parts, senderNumber, owner, db)
 
 async function handleDeposit(sock, jid, msg, parts, senderNumber, owner, db) {
     if (!hasPermission(senderNumber, "1", owner)) {
-        await sendText(
-            sock,
-            jid,
-            "❌ ليس لديك صلاحية لاستخدام أمر .رصيد (يجب منحها لك عبر .سماح 1).",
-            msg
-        );
+        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .رصيد (يجب منحها لك عبر .سماح 1).", msg);
         return true;
     }
 
@@ -903,18 +774,10 @@ async function handleDeposit(sock, jid, msg, parts, senderNumber, owner, db) {
     user.balance = Number(user.balance || 0) + amount;
     saveDb();
 
-    await sendText(
-        sock,
-        jid,
-        `✅ 『 تم الإيداع 』✅
+    const successMsg = "✅ 『 تم الإيداع 』✅\n\nتم إيداع: `" + amount + "` عملة في البنك للعضو الملقب بـ: [" + user.nickname + "]";
+    await sendText(sock, jid, successMsg, msg);
 
-تم إيداع: \`${amount}\` عملة في البنك للعضو الملقب بـ: [${user.nickname}]`,
-        msg
-    );
-
-    const bankMessage = `┓━━━✦❘💰❘✦━━━┏
-*💰{  ${user.nickname}   }   : رصيدك:* ┊ \`${user.balance}$\`┊
-┗━━━✦❘💰❘✦━━━┛`;
+    const bankMessage = "┓━━━✦❘💰❘✦━━━┏\n*💰{  " + user.nickname + "   }   : رصيدك:* ┊ `" + user.balance + "$`┊\n┗━━━✦❘💰❘✦━━━┛";
 
     for (const bankJid of Object.keys(db.bankGroups || {})) {
         if (!db.bankGroups[bankJid]) continue;
@@ -946,23 +809,14 @@ async function handleTransfer(sock, jid, msg, parts, senderNumber, db) {
 
         const senderBalance = Number(senderUser.balance || 0);
         if (senderBalance < amount) {
-            await sendText(
-                sock,
-                jid,
-                `╗════════⛔════════╔
-     لا تملك رصيد كافي للتحويل
-
-   رصيدك الحالي: \`${senderBalance}$\`
-
-╝════════🚫════╚`,
-                msg
-            );
+            const errMsg = "╗════════⛔════════╔\n     لا تملك رصيد كافي للتحويل\n\n   رصيدك الحالي: `" + senderBalance + "$`\n\n╝════════🚫════╚";
+            await sendText(sock, jid, errMsg, msg);
             return true;
         }
 
         const found = findUserByNickname(db, targetNickname);
         if (!found) {
-            await sendText(sock, jid, `❌ لم يتم العثور على عضو مسجل بهذا اللقب: [${targetNickname}]`, msg);
+            await sendText(sock, jid, "❌ لم يتم العثور على عضو مسجل بهذا اللقب: [" + targetNickname + "]", msg);
             return true;
         }
 
@@ -975,41 +829,27 @@ async function handleTransfer(sock, jid, msg, parts, senderNumber, db) {
         found.user.balance = Number(found.user.balance || 0) + amount;
         saveDb();
 
-        await sendText(
-            sock,
-            jid,
-            `👑◈═══『 تحويل فلوس 』═══◈👑
-المحول:[${senderUser.nickname}]
+        const transferMsg = "👑◈═══『 تحويل فلوس 』═══◈👑\n" +
+            "المحول:[" + senderUser.nickname + "]\n\n" +
+            "المستلم: [" + targetNickname + "]\n\n" +
+            "المبلغ: [" + amount + "$]\n\n" +
+            "جار تحويل المبلغ.......💱\n" +
+            "👑◈══════════════◈👑";
 
-المستلم: [${targetNickname}]
-
-المبلغ: [${amount}$]
-
-جار تحويل المبلغ.......💱
-👑◈══════════════◈👑`,
-            msg
-        );
+        await sendText(sock, jid, transferMsg, msg);
 
         const receiverBalance = found.user.balance;
 
         setTimeout(async () => {
             const now = new Date().toLocaleString();
-            const bankReceipt = `💰◈═══『 إشعار بنكي 』═══◈💰
-
-🏦 البنك:
-✅ تم تحويل رصيد ✅
-
-💰 المبلغ: [${amount}$]
-
-👤 من: [${senderUser.nickname}]
-
-🪪 الى: [${targetNickname}]
-
-📅 التاريخ: [${now}]
-
-💳 الرصيد الحالي للمستلم: [${receiverBalance}$]
-
-💰◈══════════◈🪙`;
+            const bankReceipt = "💰◈═══『 إشعار بنكي 』═══◈💰\n\n" +
+                "🏦 البنك:\n✅ تم تحويل رصيد ✅\n\n" +
+                "💰 المبلغ: [" + amount + "$]\n\n" +
+                "👤 من: [" + senderUser.nickname + "]\n\n" +
+                "🪪 الى: [" + targetNickname + "]\n\n" +
+                "📅 التاريخ: [" + now + "]\n\n" +
+                "💳 الرصيد الحالي للمستلم: [" + receiverBalance + "$]\n\n" +
+                "💰◈══════════◈🪙";
 
             for (const bankJid of Object.keys(db.bankGroups || {})) {
                 if (!db.bankGroups[bankJid]) continue;
@@ -1024,7 +864,7 @@ async function handleTransfer(sock, jid, msg, parts, senderNumber, db) {
 }
 
 // ============================================================
-// .هدية - المكافآت اليومية
+// .هدية
 // ============================================================
 
 async function handleDailyReward(sock, jid, msg, senderNumber, db, saveDb) {
@@ -1040,10 +880,7 @@ async function handleDailyReward(sock, jid, msg, senderNumber, db, saveDb) {
 
     db.dailyData = db.dailyData || {};
     if (!db.dailyData[senderNumber]) {
-        db.dailyData[senderNumber] = {
-            day: 0,
-            lastClaim: 0
-        };
+        db.dailyData[senderNumber] = { day: 0, lastClaim: 0 };
     }
 
     const dailyData = db.dailyData[senderNumber];
@@ -1059,10 +896,7 @@ async function handleDailyReward(sock, jid, msg, senderNumber, db, saveDb) {
     }
 
     let currentDay = dailyData.day + 1;
-
-    if (currentDay > 30) {
-        currentDay = 1;
-    }
+    if (currentDay > 30) currentDay = 1;
 
     const reward = getDailyReward(currentDay);
     const nextReward = getNextReward(currentDay);
@@ -1076,14 +910,12 @@ async function handleDailyReward(sock, jid, msg, senderNumber, db, saveDb) {
 
     saveDb();
 
-    const message = getDailyMessage(currentDay, reward, nextReward);
-    await sendText(sock, jid, message, msg);
-
+    await sendText(sock, jid, getDailyMessage(currentDay, reward, nextReward), msg);
     return true;
 }
 
 // ============================================================
-// .اذن @user - منح صلاحية السلسلة
+// .اذن
 // ============================================================
 
 async function handleGrantPermission(sock, jid, msg, parts, senderNumber, owner, db, saveDb) {
@@ -1105,16 +937,16 @@ async function handleGrantPermission(sock, jid, msg, parts, senderNumber, owner,
     if (!db.chainPermissions.includes(target)) {
         db.chainPermissions.push(target);
         saveDb();
-        await sendText(sock, jid, `✅ تم منح صلاحية السلسلة للعضو @${target}`, msg, { mentions: [mentioned] });
+        await sendText(sock, jid, "✅ تم منح صلاحية السلسلة للعضو @" + target, msg, { mentions: [mentioned] });
     } else {
-        await sendText(sock, jid, `⚠️ العضو @${target} لديه الصلاحية بالفعل.`, msg, { mentions: [mentioned] });
+        await sendText(sock, jid, "⚠️ العضو @" + target + " لديه الصلاحية بالفعل.", msg, { mentions: [mentioned] });
     }
 
     return true;
 }
 
 // ============================================================
-// .سلسلة @user عدد - تعديل أيام السلسلة
+// .سلسلة
 // ============================================================
 
 async function handleChainEdit(sock, jid, msg, parts, senderNumber, owner, db, saveDb) {
@@ -1142,17 +974,13 @@ async function handleChainEdit(sock, jid, msg, parts, senderNumber, owner, db, s
 
     db.dailyData = db.dailyData || {};
     if (!db.dailyData[target]) {
-        db.dailyData[target] = {
-            day: 0,
-            lastClaim: 0
-        };
+        db.dailyData[target] = { day: 0, lastClaim: 0 };
     }
 
     db.dailyData[target].day = dayCount;
     saveDb();
 
-    await sendText(sock, jid, `✅ تم تعديل سلسلة العضو @${target} إلى ${dayCount} أيام.`, msg, { mentions: [mentioned] });
-
+    await sendText(sock, jid, "✅ تم تعديل سلسلة العضو @" + target + " إلى " + dayCount + " أيام.", msg, { mentions: [mentioned] });
     return true;
 }
 
@@ -1164,12 +992,7 @@ async function handleRouletteBet(sock, jid, msg, parts, senderNumber, db) {
     const casino = activeCasinos[jid];
 
     if (!casino || casino.started || casino.type !== "roulette") {
-        await sendText(
-            sock,
-            jid,
-            "⚠️ لا توجد فعالية روليت مفتوحة لاستقبال الرهانات حالياً. اكتب .روليت لإنشائها.",
-            msg
-        );
+        await sendText(sock, jid, "⚠️ لا توجد فعالية روليت مفتوحة لاستقبال الرهانات حالياً. اكتب .روليت لإنشائها.", msg);
         return true;
     }
 
@@ -1192,17 +1015,8 @@ async function handleRouletteBet(sock, jid, msg, parts, senderNumber, db) {
 
     const balance = Number(user.balance || 0);
     if (balance < amount) {
-        await sendText(
-            sock,
-            jid,
-            `╗════════⛔════════╔
-     لا تملك رصيد كافي للرهان
-
-   رصيدك الحالي: \`${balance}$\`
-
-╝════════🚫════╚`,
-            msg
-        );
+        const errMsg = "╗════════⛔════════╔\n     لا تملك رصيد كافي للرهان\n\n   رصيدك الحالي: `" + balance + "$`\n\n╝════════🚫════╚";
+        await sendText(sock, jid, errMsg, msg);
         return true;
     }
 
@@ -1216,12 +1030,7 @@ async function handleRouletteBet(sock, jid, msg, parts, senderNumber, db) {
     if (firstPlayer) {
         const firstAmount = Number(casino.bets[firstPlayer]?.amount) || 0;
         if (amount < firstAmount) {
-            await sendText(
-                sock,
-                jid,
-                `⚠️ يجب أن يكون الرهان مساوياً أو أعلى من أول رهان (${firstAmount}$)`,
-                msg
-            );
+            await sendText(sock, jid, "⚠️ يجب أن يكون الرهان مساوياً أو أعلى من أول رهان (" + firstAmount + "$)", msg);
             return true;
         }
     }
@@ -1234,7 +1043,7 @@ async function handleRouletteBet(sock, jid, msg, parts, senderNumber, db) {
         jid: userMention(senderNumber)
     };
 
-    await sendText(sock, jid, `✅ تم وضع الرهان من قبل [${user.nickname}] ✅`, msg);
+    await sendText(sock, jid, "✅ تم وضع الرهان من قبل [" + user.nickname + "] ✅", msg);
     return true;
 }
 
@@ -1256,9 +1065,7 @@ async function handleGamePause(sock, jid, msg, senderNumber, owner, db) {
         game.isPaused = true;
 
         if (typeof game.stopGame === "function") {
-            try {
-                game.stopGame();
-            } catch (_) {}
+            try { game.stopGame(); } catch (_) {}
         }
 
         await sendText(sock, jid, "⏸️ تم إيقاف الفعالية الحالية مؤقتاً. استخدم .كمل لاستئنافها.", msg);
@@ -1286,7 +1093,6 @@ async function handleGameResume(sock, jid, msg, senderNumber, owner) {
         } else {
             await sendText(sock, jid, "⚠️ لا يمكن استئناف هذه الفعالية.", msg);
         }
-
         return true;
     }
 
@@ -1300,7 +1106,7 @@ async function handleGameResume(sock, jid, msg, senderNumber, owner) {
 }
 
 // ============================================================
-// .وقف - إيقاف كل الألعاب
+// .وقف
 // ============================================================
 
 async function handleStopAllGames(sock, jid, msg, senderNumber, owner, db) {
@@ -1316,23 +1122,14 @@ async function handleStopAllGames(sock, jid, msg, senderNumber, owner, db) {
     stopAllCasinos();
 
     for (const gJid of Object.keys(activeSaraha || {})) {
-        try {
-            stopSarahaGame(gJid);
-        } catch (_) {}
+        try { stopSarahaGame(gJid); } catch (_) {}
     }
-
     for (const gJid of Object.keys(activeColors || {})) {
-        try {
-            stopColorsGame(gJid);
-        } catch (_) {}
+        try { stopColorsGame(gJid); } catch (_) {}
     }
-
     for (const gJid of Object.keys(activeAnimals || {})) {
-        try {
-            stopAnimalsGame(gJid);
-        } catch (_) {}
+        try { stopAnimalsGame(gJid); } catch (_) {}
     }
-
     for (const mJid of Object.keys(activeMazads || {})) {
         try {
             if (activeMazads[mJid] && typeof activeMazads[mJid].stopMazad === "function") {
@@ -1342,28 +1139,17 @@ async function handleStopAllGames(sock, jid, msg, senderNumber, owner, db) {
     }
 
     try {
-        for (const key of Object.keys(activeGames)) {
-            delete activeGames[key];
-        }
-        for (const key of Object.keys(activeCasinos)) {
-            delete activeCasinos[key];
-        }
+        for (const key of Object.keys(activeGames)) delete activeGames[key];
+        for (const key of Object.keys(activeCasinos)) delete activeCasinos[key];
     } catch (_) {}
 
-    await sendText(
-        sock,
-        jid,
-        `◆⫘⫘⫘⫘🔑⫘⫘⫘⫘◆
-   تم ايقاف كل الالعاب والكازينو
-◆⫘⫘⫘⫘🔒⫘⫘⫘⫘◆`,
-        msg
-    );
-
+    const stopMsg = "◆⫘⫘⫘⫘🔑⫘⫘⫘⫘◆\n   تم ايقاف كل الالعاب والكازينو\n◆⫘⫘⫘⫘🔒⫘⫘⫘⫘◆";
+    await sendText(sock, jid, stopMsg, msg);
     return true;
 }
 
 // ============================================================
-// .ردود on/off
+// .ردود
 // ============================================================
 
 async function handleReplies(sock, jid, msg, parts, senderNumber, owner, db, saveDb) {
@@ -1381,16 +1167,12 @@ async function handleReplies(sock, jid, msg, parts, senderNumber, owner, db, sav
     if (action === "on") {
         db.repliesEnabled[jid] = true;
         saveDb();
-        try {
-            await sock.sendMessage(jid, { delete: msg.key });
-        } catch (_) {}
+        try { await sock.sendMessage(jid, { delete: msg.key }); } catch (_) {}
         await sendText(sock, jid, "✅ تم تشغيل الردود.", msg);
     } else if (action === "off") {
         delete db.repliesEnabled[jid];
         saveDb();
-        try {
-            await sock.sendMessage(jid, { delete: msg.key });
-        } catch (_) {}
+        try { await sock.sendMessage(jid, { delete: msg.key }); } catch (_) {}
         await sendText(sock, jid, "✅ تم إيقاف الردود.", msg);
     } else {
         await sendText(sock, jid, "⚠️ الاستخدام الصحيح: .ردود on/off", msg);
@@ -1400,7 +1182,7 @@ async function handleReplies(sock, jid, msg, parts, senderNumber, owner, db, sav
 }
 
 // ============================================================
-// .احا on/off
+// .احا
 // ============================================================
 
 async function handleAha(sock, jid, msg, parts, senderNumber, owner, db, saveDb) {
@@ -1418,16 +1200,12 @@ async function handleAha(sock, jid, msg, parts, senderNumber, owner, db, saveDb)
     if (action === "on") {
         db.ahaEnabled[jid] = true;
         saveDb();
-        try {
-            await sock.sendMessage(jid, { delete: msg.key });
-        } catch (_) {}
+        try { await sock.sendMessage(jid, { delete: msg.key }); } catch (_) {}
         await sendText(sock, jid, "✅ تم تشغيل أمر احا.", msg);
     } else if (action === "off") {
         delete db.ahaEnabled[jid];
         saveDb();
-        try {
-            await sock.sendMessage(jid, { delete: msg.key });
-        } catch (_) {}
+        try { await sock.sendMessage(jid, { delete: msg.key }); } catch (_) {}
         await sendText(sock, jid, "✅ تم إيقاف أمر احا.", msg);
     } else {
         await sendText(sock, jid, "⚠️ الاستخدام الصحيح: .احا on/off", msg);
@@ -1437,7 +1215,7 @@ async function handleAha(sock, jid, msg, parts, senderNumber, owner, db, saveDb)
 }
 
 // ============================================================
-// .هدوء on/off
+// .هدوء
 // ============================================================
 
 async function handleQuiet(sock, jid, msg, parts, senderNumber, owner, db, saveDb) {
@@ -1476,13 +1254,8 @@ async function handleQuiet(sock, jid, msg, parts, senderNumber, owner, db, saveD
                 timer.sent = true;
                 try {
                     await sock.sendMessage(jid, {
-                        text: `😶‍🌫️══════════════😶‍🌫️
-عمّ الهدوء في قروب المغوليين
-😶‍🌫️══════════════😶‍🌫️`
+                        text: "😶‍🌫️══════════════😶‍🌫️\nعمّ الهدوء في قروب المغوليين\n😶‍🌫️══════════════😶‍🌫️"
                     });
-                    await sock.sendMessage(jid, {
-                        react: { text: "😶‍🌫️", key: msg.key }
-                    }).catch(() => {});
                 } catch (_) {}
             }
 
@@ -1493,9 +1266,7 @@ async function handleQuiet(sock, jid, msg, parts, senderNumber, owner, db, saveD
         }, 60000);
 
         saveDb();
-        try {
-            await sock.sendMessage(jid, { delete: msg.key });
-        } catch (_) {}
+        try { await sock.sendMessage(jid, { delete: msg.key }); } catch (_) {}
         await sendText(sock, jid, "✅ تم تشغيل وضع الهدوء.", msg);
     } else if (action === "off") {
         delete db.quietEnabled[jid];
@@ -1504,9 +1275,7 @@ async function handleQuiet(sock, jid, msg, parts, senderNumber, owner, db, saveD
         }
         delete db.quietTimer[jid];
         saveDb();
-        try {
-            await sock.sendMessage(jid, { delete: msg.key });
-        } catch (_) {}
+        try { await sock.sendMessage(jid, { delete: msg.key }); } catch (_) {}
         await sendText(sock, jid, "✅ تم إيقاف وضع الهدوء.", msg);
     } else {
         await sendText(sock, jid, "⚠️ الاستخدام الصحيح: .هدوء on/off", msg);
@@ -1516,7 +1285,7 @@ async function handleQuiet(sock, jid, msg, parts, senderNumber, owner, db, saveD
 }
 
 // ============================================================
-// .تنظيم on/off - تفعيل مراقبة المغادرين
+// .تنظيم
 // ============================================================
 
 async function handleOrganize(sock, jid, msg, parts, senderNumber, owner, db, saveDb) {
@@ -1562,30 +1331,19 @@ async function handleCommand(sock, jid, msg, context = {}) {
     
     const parsed = getCommand(finalText);
     if (!parsed) {
-        if (isNormalized) {
-            return false;
-        }
+        if (isNormalized) return false;
         return false;
     }
 
     const { command, parts } = parsed;
-
     const sender = context.sender || getSender(msg, sock);
     const senderNumber = context.cleanSender || cleanNumber(jidToNumber(sender));
     const group = context.isGroup ?? isGroupJid(jid);
     const owner = context.isBotOwner ?? isOwner(senderNumber, sock, msg);
 
-    // ========================================================
-    // STOP EVERYTHING
-    // ========================================================
-
     if (finalText.trim().toLowerCase() === ".stop everything") {
         return handleEmergencyStop(sock, jid, msg, owner);
     }
-
-    // ========================================================
-    // الأوامر التي تحتاج مجموعة
-    // ========================================================
 
     if (isGameCommand(command) ||
         command === "بوت" ||
@@ -1611,10 +1369,6 @@ async function handleCommand(sock, jid, msg, context = {}) {
         }
     }
 
-    // ========================================================
-    // الإدارة
-    // ========================================================
-
     const adminCommands = new Set([
         "سماح",
         "صلاحيات",
@@ -1629,25 +1383,12 @@ async function handleCommand(sock, jid, msg, context = {}) {
 
     if (adminCommands.has(command)) {
         const handled = await handleAdminCommand(
-            sock,
-            jid,
-            msg,
-            command,
-            parts,
-            senderNumber,
-            sender,
-            db,
-            saveDb,
-            owner,
-            group,
+            sock, jid, msg, command, parts, senderNumber, sender,
+            db, saveDb, owner, group,
             (user, level) => hasPermission(user, level, owner)
         );
         return handled !== false;
     }
-
-    // ========================================================
-    // الإعلانات
-    // ========================================================
 
     if (command === "ads") {
         if (!owner) return true;
@@ -1670,10 +1411,6 @@ async function handleCommand(sock, jid, msg, context = {}) {
         return true;
     }
 
-    // ========================================================
-    // البنك
-    // ========================================================
-
     if (command === "البنك") {
         if (!owner) return true;
 
@@ -1683,21 +1420,11 @@ async function handleCommand(sock, jid, msg, context = {}) {
         if (action === "on") {
             db.bankGroups[jid] = true;
             saveDb();
-            await sendText(
-                sock,
-                jid,
-                "╗════════✅════════╔\n  تم حفظ هذا القروب بأسم البنك \n╝════════✅════╚",
-                msg
-            );
+            await sendText(sock, jid, "╗════════✅════════╔\n  تم حفظ هذا القروب بأسم البنك \n╝════════✅════╚", msg);
         } else if (action === "off") {
             delete db.bankGroups[jid];
             saveDb();
-            await sendText(
-                sock,
-                jid,
-                "╗════════⛔════════╔\n  تم ايقاف حفظ هذا القروب بأسم البنك \n╝════════🚫════╚",
-                msg
-            );
+            await sendText(sock, jid, "╗════════⛔════════╔\n  تم ايقاف حفظ هذا القروب بأسم البنك \n╝════════🚫════╚", msg);
         } else {
             await sendText(sock, jid, "⚠️ الاستخدام الصحيح: .البنك on/off", msg);
         }
@@ -1705,40 +1432,18 @@ async function handleCommand(sock, jid, msg, context = {}) {
         return true;
     }
 
-    // ========================================================
-    // .تنظيم
-    // ========================================================
-
     if (command === "تنظيم") {
         return handleOrganize(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
     }
-
-    // ========================================================
-    // الألعاب
-    // ========================================================
 
     if (command === "العاب") {
         return handleGamesList(sock, jid, msg, senderNumber);
     }
 
     if (command === "تفكيك" || command === "كتابة" || command === "اعلام" || command === "ايموجي") {
-        await handleGameCommand(
-            sock,
-            jid,
-            msg,
-            command,
-            senderNumber,
-            sender,
-            db,
-            saveDb,
-            owner
-        );
+        await handleGameCommand(sock, jid, msg, command, senderNumber, sender, db, saveDb, owner);
         return true;
     }
-
-    // ========================================================
-    // الكازينو
-    // ========================================================
 
     if (command === "كازينو") {
         return handleCasinoMenu(sock, jid, msg);
@@ -1773,4 +1478,119 @@ async function handleCommand(sock, jid, msg, context = {}) {
         }
 
         if (casino.creator !== senderNumber && !owner) {
-            await sendText(sock, jid, "⚠️ م
+            await sendText(sock, jid, "⚠️ منشئ الفعالية فقط أو المطور يمكنه إلغاؤها بـ .انسحاب", msg);
+            return true;
+        }
+
+        try {
+            if (typeof casino.stopGame === "function") casino.stopGame();
+        } catch (_) {}
+
+        delete activeCasinos[jid];
+        await sendText(sock, jid, "🚫 تم إلغاء فعالية الكازينو بنجاح.", msg);
+        return true;
+    }
+
+    if (command === "ايقاف") {
+        return handleGamePause(sock, jid, msg, senderNumber, owner, db);
+    }
+
+    if (command === "كمل") {
+        return handleGameResume(sock, jid, msg, senderNumber, owner);
+    }
+
+    if (command === "وقف") {
+        return handleStopAllGames(sock, jid, msg, senderNumber, owner, db);
+    }
+
+    if (command === "القاب") {
+        return handleTitles(sock, jid, msg, db);
+    }
+
+    if (command === "سجل") {
+        return handleRegister(sock, jid, msg, parts, senderNumber, owner, db);
+    }
+
+    if (command === "حذف") {
+        return handleDeleteTitle(sock, jid, msg, parts, senderNumber, owner, db);
+    }
+
+    if (command === "علاقة") {
+        return handleFriendRelation(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
+    }
+
+    if (command === "رتبته") {
+        return handleRank(sock, jid, msg, parts, senderNumber, owner, db);
+    }
+
+    if (command === "تفاعله") {
+        return handleInteraction(sock, jid, msg, parts, senderNumber, owner, db);
+    }
+
+    if (command === "تفاصيلي") {
+        return handleMyDetails(sock, jid, msg, senderNumber, db);
+    }
+
+    if (command === "تفاصيله") {
+        return handleUserDetails(sock, jid, msg, db);
+    }
+
+    if (command === "رصيد") {
+        return handleDeposit(sock, jid, msg, parts, senderNumber, owner, db);
+    }
+
+    if (command === "تحويل") {
+        return handleTransfer(sock, jid, msg, parts, senderNumber, db);
+    }
+
+    if (command === "المطور") {
+        await sendText(sock, jid, "👨‍💻 أهلاً بك، البوت يعمل بكامل نظامه وجاهز للفعاليات!", msg);
+        return true;
+    }
+
+    if (command === "هدية") {
+        return handleDailyReward(sock, jid, msg, senderNumber, db, saveDb);
+    }
+
+    if (command === "اذن") {
+        return handleGrantPermission(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
+    }
+
+    if (command === "سلسلة") {
+        return handleChainEdit(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
+    }
+
+    if (command === "ردود") {
+        return handleReplies(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
+    }
+
+    if (command === "احا") {
+        return handleAha(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
+    }
+
+    if (command === "هدوء") {
+        return handleQuiet(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
+    }
+
+    return false;
+}
+
+// ============================================================
+// التحكم بالحظر العام
+// ============================================================
+
+function getGlobalGameBlockUntil() {
+    return globalGameBlockUntil;
+}
+
+function setGlobalGameBlockUntil(timestamp) {
+    globalGameBlockUntil = Number(timestamp) || 0;
+}
+
+function isGamesBlocked() {
+    return Date.now() < globalGameBlockUntil;
+}
+
+// ============================================================
+// exports
+// =======================================================
