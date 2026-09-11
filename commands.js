@@ -79,6 +79,12 @@ const {
 let globalGameBlockUntil = 0;
 
 // ============================================================
+// 🎮 قائمة انتظار .العاب
+// ============================================================
+
+const pendingGamesMenu = global.pendingGamesMenu || (global.pendingGamesMenu = Object.create(null));
+
+// ============================================================
 // أدوات
 // ============================================================
 
@@ -130,10 +136,8 @@ function getNormalizedCommand(text) {
     
     const lower = text.toLowerCase().trim();
     
-    // الأوامر التي تبدأ بـ . مباشرة
     if (text.startsWith('.')) return text;
     
-    // خريطة الأوامر البديلة (بدون نقطة)
     const commandMap = {
         'القاب': '.القاب',
         'تفاصيل': '.تفاصيلي',
@@ -144,7 +148,6 @@ function getNormalizedCommand(text) {
         'تنظيم': '.تنظيم'
     };
     
-    // التحقق من الأمر الكامل
     for (const [key, value] of Object.entries(commandMap)) {
         if (lower === key || lower.startsWith(key + ' ')) {
             const remaining = lower.slice(key.length);
@@ -160,7 +163,6 @@ function getNormalizedCommand(text) {
 // ============================================================
 
 function isSimilarNickname(existing, newName) {
-    // تطبيع النص
     const normalize = (str) => {
         return String(str)
             .replace(/[أإآ]/g, 'ا')
@@ -174,17 +176,14 @@ function isSimilarNickname(existing, newName) {
     const normalizedExisting = normalize(existing);
     const normalizedNew = normalize(newName);
 
-    // نفس الاسم بالضبط
     if (normalizedExisting === normalizedNew) return true;
 
-    // إزالة الأرقام من نهاية الاسم (مثل: ايتاتشي 2)
     const cleanName = (str) => str.replace(/\s*\d+$/, '').trim();
     const cleanExisting = cleanName(normalizedExisting);
     const cleanNew = cleanName(normalizedNew);
 
     if (cleanExisting === cleanNew) return true;
 
-    // حساب نسبة التشابه
     const minLength = Math.min(cleanExisting.length, cleanNew.length);
     if (minLength < 3) return false;
     
@@ -194,7 +193,7 @@ function isSimilarNickname(existing, newName) {
     }
     
     const similarity = matches / minLength;
-    return similarity > 0.85; // تشابه أكثر من 85%
+    return similarity > 0.85;
 }
 
 function getSender(msg, sock) {
@@ -403,32 +402,73 @@ async function handleEmergencyStop(sock, jid, msg, owner) {
 }
 
 // ============================================================
-// .العاب
+// 🎮 .العاب - قائمة تفاعلية بزر تحديد
 // ============================================================
 
-async function handleGamesList(sock, jid, msg) {
-    const text = `👑◈═══『 𝐴𝐿𝐽𝐸𝑆𝐴𝑇 亗 511 』═══◈👑
-🎮 قـائـمـة الـألـعـاب 🎮
-👑◈═══『 𝐴𝐿𝐽𝐸𝑆𝐴𝑇 亗 511 』═══◈👑
+async function handleGamesList(sock, jid, msg, senderNumber) {
+    // حفظ صاحب الطلب
+    pendingGamesMenu[jid] = {
+        sender: senderNumber,
+        timestamp: Date.now()
+    };
+
+    // تنظيف تلقائي بعد 5 دقائق
+    setTimeout(() => {
+        if (pendingGamesMenu[jid] && pendingGamesMenu[jid].sender === senderNumber) {
+            delete pendingGamesMenu[jid];
+        }
+    }, 5 * 60 * 1000);
+
+    const sections = [
+        {
+            title: "🎮 الفعاليات المتاحة",
+            rows: [
+                { title: "⏣⊰ تفكـ🧩ـــيك ⊱⏣", rowId: "game_تفكيك" },
+                { title: "⏣⊰ كــتــ✍️ــابـة ⊱⏣", rowId: "game_كتابة" },
+                { title: "⏣⊰ ألــــ🎨ـــوان ⊱⏣", rowId: "game_الوان" },
+                { title: "⏣⊰ صــ🫣ــراحة ⊱⏣", rowId: "game_صراحة" },
+                { title: "⏣⊰ الـحـ🦊ـيوانات ⊱⏣", rowId: "game_الحيوانات" },
+                { title: "⏣⊰ أعـــ🚩ــلام ⊱⏣", rowId: "game_اعلام" },
+                { title: "⏣⊰ إيمـــ😀ــوجي ⊱⏣", rowId: "game_ايموجي" },
+                { title: "❆━═🎲 روليت 🎰═━❆", rowId: "game_روليت" },
+                { title: "❆━═🎲 كريستال 🎰═━❆", rowId: "game_كريستال" }
+            ]
+        }
+    ];
+
+    const listMessage = {
+        text: `❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆
+     \`رجاءاً قم بتحديد الفعالية:\`
+❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆`,
+        footer: "اختر الفعالية ثم اضغط على الخيار",
+        title: "تحديد الفعالية",
+        buttonText: "👈 تحديد 👉",
+        sections: sections
+    };
+
+    try {
+        await sock.sendMessage(jid, listMessage, { quoted: msg });
+    } catch (e) {
+        console.error("❌ فشل إرسال قائمة الألعاب:", e?.message);
+        // Fallback نصي
+        await sendText(sock, jid,
+            `❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆
+     \`رجاءاً قم بتحديد الفعالية:\`
+❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆
 
 🧩 .تفكيك
 ✍️ .كتابة
-😀 .ايموجي
-🏳 .اعلام
-🎰 .كازينو
-🫢 .صراحة
 🎨 .الوان
-🐾 .الحيوانات
+🫣 .صراحة
+🦊 .الحيوانات
+🚩 .اعلام
+😀 .ايموجي
+🎰 .روليت
+🎰 .كريستال`,
+            msg
+        );
+    }
 
-📌 اختر اللعبة التي تريد المشاركة بها
-
-🍀 بالتوفيق للجميع إن شاء الله 💼
-
-⚔️◈═══════════════════◈🫟
-          『 𝐴𝐿𝐽𝐸𝑆𝐴𝑇 亗 511 』
-🕹️◈══════════════════◈🎮`;
-
-    await sendText(sock, jid, text, msg);
     return true;
 }
 
@@ -458,7 +498,7 @@ async function handleCasinoMenu(sock, jid, msg) {
 }
 
 // ============================================================
-// .القاب (معدل مع التنسيق الجديد)
+// .القاب
 // ============================================================
 
 async function handleTitles(sock, jid, msg, db) {
@@ -490,7 +530,7 @@ async function handleTitles(sock, jid, msg, db) {
 }
 
 // ============================================================
-// .سجل (معدل مع منع الألقاب المتشابهة)
+// .سجل
 // ============================================================
 
 async function handleRegister(sock, jid, msg, parts, senderNumber, owner, db) {
@@ -518,7 +558,6 @@ async function handleRegister(sock, jid, msg, parts, senderNumber, owner, db) {
         return true;
     }
 
-    // التحقق من الألقاب المتشابهة
     for (const number of Object.keys(db.users || {})) {
         const existingUser = db.users[number];
         if (!existingUser || !existingUser.nickname) continue;
@@ -666,14 +705,13 @@ async function handleFriendRelation(sock, jid, msg, parts, senderNumber, owner, 
 }
 
 // ============================================================
-// .تفاصيلي (معدل مع عرض "غير مسجل")
+// .تفاصيلي
 // ============================================================
 
 async function handleMyDetails(sock, jid, msg, senderNumber, db) {
     const user = getUser(db, senderNumber);
 
     if (!user || !String(user.nickname || "").trim()) {
-        // عرض البيانات مع "غير مسجل"
         const displayNickname = "غير مسجل";
         const friendNickname = String(user?.friend || "").trim() || "لا يوجد";
 
@@ -714,7 +752,7 @@ async function handleMyDetails(sock, jid, msg, senderNumber, db) {
 }
 
 // ============================================================
-// .تفاصيله (معدل مع عرض "غير مسجل")
+// .تفاصيله
 // ============================================================
 
 async function handleUserDetails(sock, jid, msg, db) {
@@ -887,7 +925,7 @@ async function handleDeposit(sock, jid, msg, parts, senderNumber, owner, db) {
 }
 
 // ============================================================
-// .تحويل (معدل لدعم "الى" و "الي")
+// .تحويل
 // ============================================================
 
 async function handleTransfer(sock, jid, msg, parts, senderNumber, db) {
@@ -1192,7 +1230,7 @@ async function handleRouletteBet(sock, jid, msg, parts, senderNumber, db) {
     casino.bets[senderNumber] = {
         nickname: user.nickname,
         amount,
-        lives: 4,
+        lives: 3,
         jid: userMention(senderNumber)
     };
 
@@ -1506,16 +1544,13 @@ async function handleOrganize(sock, jid, msg, parts, senderNumber, owner, db, sa
 }
 
 // ============================================================
-// الراوتر الرئيسي (معدل لدعم الأوامر بدون نقطة)
+// الراوتر الرئيسي
 // ============================================================
 
 async function handleCommand(sock, jid, msg, context = {}) {
     const db = context.db || getDb();
     const text = context.text || getMessageText(msg);
     
-    // ============================================================
-    // معالجة الأوامر بدون نقطة
-    // ============================================================
     const normalizedCommand = getNormalizedCommand(text);
     let finalText = text;
     let isNormalized = false;
@@ -1554,6 +1589,7 @@ async function handleCommand(sock, jid, msg, context = {}) {
 
     if (isGameCommand(command) ||
         command === "بوت" ||
+        command === "اشرافه" ||
         command === "استقبال" ||
         command === "ورك" ||
         command === "work" ||
@@ -1583,6 +1619,7 @@ async function handleCommand(sock, jid, msg, context = {}) {
         "سماح",
         "صلاحيات",
         "بوت",
+        "اشرافه",
         "استقبال",
         "ورك",
         "work",
@@ -1681,7 +1718,7 @@ async function handleCommand(sock, jid, msg, context = {}) {
     // ========================================================
 
     if (command === "العاب") {
-        return handleGamesList(sock, jid, msg);
+        return handleGamesList(sock, jid, msg, senderNumber);
     }
 
     if (command === "تفكيك" || command === "كتابة" || command === "اعلام" || command === "ايموجي") {
@@ -1736,213 +1773,4 @@ async function handleCommand(sock, jid, msg, context = {}) {
         }
 
         if (casino.creator !== senderNumber && !owner) {
-            await sendText(sock, jid, "⚠️ منشئ الفعالية فقط أو المطور يمكنه إلغاؤها بـ .انسحاب", msg);
-            return true;
-        }
-
-        try {
-            if (typeof casino.stopGame === "function") {
-                casino.stopGame();
-            }
-        } catch (_) {}
-
-        delete activeCasinos[jid];
-        await sendText(sock, jid, "🚫 تم إلغاء فعالية الكازينو بنجاح.", msg);
-        return true;
-    }
-
-    // ========================================================
-    // .ايقاف و .كمل
-    // ========================================================
-
-    if (command === "ايقاف") {
-        return handleGamePause(sock, jid, msg, senderNumber, owner, db);
-    }
-
-    if (command === "كمل") {
-        return handleGameResume(sock, jid, msg, senderNumber, owner);
-    }
-
-    // ========================================================
-    // .وقف
-    // ========================================================
-
-    if (command === "وقف") {
-        return handleStopAllGames(sock, jid, msg, senderNumber, owner, db);
-    }
-
-    // ========================================================
-    // .القاب
-    // ========================================================
-
-    if (command === "القاب") {
-        return handleTitles(sock, jid, msg, db);
-    }
-
-    // ========================================================
-    // .سجل
-    // ========================================================
-
-    if (command === "سجل") {
-        return handleRegister(sock, jid, msg, parts, senderNumber, owner, db);
-    }
-
-    // ========================================================
-    // .حذف
-    // ========================================================
-
-    if (command === "حذف") {
-        return handleDeleteTitle(sock, jid, msg, parts, senderNumber, owner, db);
-    }
-
-    // ========================================================
-    // .علاقة
-    // ========================================================
-
-    if (command === "علاقة") {
-        return handleFriendRelation(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
-    }
-
-    // ========================================================
-    // .رتبته
-    // ========================================================
-
-    if (command === "رتبته") {
-        return handleRank(sock, jid, msg, parts, senderNumber, owner, db);
-    }
-
-    // ========================================================
-    // .تفاعله
-    // ========================================================
-
-    if (command === "تفاعله") {
-        return handleInteraction(sock, jid, msg, parts, senderNumber, owner, db);
-    }
-
-    // ========================================================
-    // .تفاصيلي و .تفاصيله
-    // ========================================================
-
-    if (command === "تفاصيلي") {
-        return handleMyDetails(sock, jid, msg, senderNumber, db);
-    }
-
-    if (command === "تفاصيله") {
-        return handleUserDetails(sock, jid, msg, db);
-    }
-
-    // ========================================================
-    // .رصيد
-    // ========================================================
-
-    if (command === "رصيد") {
-        return handleDeposit(sock, jid, msg, parts, senderNumber, owner, db);
-    }
-
-    // ========================================================
-    // .تحويل
-    // ========================================================
-
-    if (command === "تحويل") {
-        return handleTransfer(sock, jid, msg, parts, senderNumber, db);
-    }
-
-    // ========================================================
-    // .المطور
-    // ========================================================
-
-    if (command === "المطور") {
-        await sendText(sock, jid, "👨‍💻 أهلاً بك، البوت يعمل بكامل نظامه وجاهز للفعاليات!", msg);
-        return true;
-    }
-
-    // ========================================================
-    // .هدية
-    // ========================================================
-
-    if (command === "هدية") {
-        return handleDailyReward(sock, jid, msg, senderNumber, db, saveDb);
-    }
-
-    // ========================================================
-    // .اذن
-    // ========================================================
-
-    if (command === "اذن") {
-        return handleGrantPermission(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
-    }
-
-    // ========================================================
-    // .سلسلة
-    // ========================================================
-
-    if (command === "سلسلة") {
-        return handleChainEdit(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
-    }
-
-    // ========================================================
-    // .ردود
-    // ========================================================
-
-    if (command === "ردود") {
-        return handleReplies(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
-    }
-
-    // ========================================================
-    // .احا
-    // ========================================================
-
-    if (command === "احا") {
-        return handleAha(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
-    }
-
-    // ========================================================
-    // .هدوء
-    // ========================================================
-
-    if (command === "هدوء") {
-        return handleQuiet(sock, jid, msg, parts, senderNumber, owner, db, saveDb);
-    }
-
-    // ========================================================
-    // أوامر المزاد - تعالج في index.js
-    // ========================================================
-
-    return false;
-}
-
-// ============================================================
-// التحكم بالحظر العام
-// ============================================================
-
-function getGlobalGameBlockUntil() {
-    return globalGameBlockUntil;
-}
-
-function setGlobalGameBlockUntil(timestamp) {
-    globalGameBlockUntil = Number(timestamp) || 0;
-}
-
-function isGamesBlocked() {
-    return Date.now() < globalGameBlockUntil;
-}
-
-// ============================================================
-// exports
-// ============================================================
-
-module.exports = {
-    handleCommand,
-    getMessageText,
-    getCommand,
-    isGameCommand,
-    stopAllGames,
-    stopAllCasinos,
-    getGlobalGameBlockUntil,
-    setGlobalGameBlockUntil,
-    isGamesBlocked,
-    findUserByNickname,
-    findUserByNicknameForFriend,
-    isSimilarNickname,
-    getNormalizedCommand
-};
+            await sendText(sock, jid, "⚠️ م
