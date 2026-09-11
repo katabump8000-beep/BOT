@@ -121,6 +121,13 @@ const MAX_IDLE_CHECKS = 15;
 const MAX_GAME_COUNT = 8;
 
 // ============================================================
+// 🎮 قائمة انتظار اختيار الفعالية من زر .العاب
+// ============================================================
+
+const pendingGamesMenu = Object.create(null);
+global.pendingGamesMenu = pendingGamesMenu;
+
+// ============================================================
 // 🛡️ شبكة أمان مبسّطة
 // ============================================================
 
@@ -195,44 +202,84 @@ function shouldIgnoreMessage(msg) {
 }
 
 // ============================================================
-// 👑 التحقق من صلاحية الأدمن/المشرف
+// 🎮 معالجة اختيار الفعالية من قائمة .العاب
 // ============================================================
 
-async function isGroupAdmin(sock, jid, senderJid) {
-    try {
-        const metadata = await sock.groupMetadata(jid);
-        if (!metadata || !Array.isArray(metadata.participants)) return false;
+async function handleGamesMenuSelection(sock, msg, jid, cleanSender, sender, db, owner, botNumber, isGroup) {
+    const listResp = msg.message?.listResponseMessage;
+    if (!listResp) return false;
 
-        // مطابقة دقيقة للـ JID (participant.id)
-        const senderClean = cleanNumber(senderJid);
-        const participant = metadata.participants.find(p => {
-            const pClean = cleanNumber(p.id);
-            return pClean === senderClean;
+    const selectedId = listResp.singleSelectReply?.selectedRowId;
+    if (!selectedId || !selectedId.startsWith("game_")) return false;
+
+    const pending = global.pendingGamesMenu && global.pendingGamesMenu[jid];
+
+    // ✅ فقط صاحب الأمر .العاب يمكنه الاختيار
+    if (!pending || pending.sender !== cleanSender) {
+        await sock.sendMessage(jid, {
+            text: "⚠️ هذه القائمة خاصة بصاحب الأمر `.العاب` فقط."
+        }, { quoted: msg }).catch(() => {});
+        return true;
+    }
+
+    delete global.pendingGamesMenu[jid];
+    const cmd = selectedId.replace("game_", "");
+
+    // حالة خاصة: كريستال - اطلب الرهان
+    if (cmd === "كريستال") {
+        await sock.sendMessage(jid, {
+            text: `*❉▬▬▬▬🎰▬▬▬▬❉*
+  رجاءا أكتب عدد رهانك:
+ .كريستال عدد
+مثال:  *.كريستال 50*
+*✥▬▬▬▬🎰▬▬▬▬✥*`
+        }, { quoted: msg }).catch(() => {});
+        return true;
+    }
+
+    // حالة خاصة: روليت
+    if (cmd === "روليت") {
+        try {
+            await handleCommand(sock, jid, msg, {
+                db,
+                sender,
+                cleanSender,
+                isGroup,
+                isBotOwner: Boolean(owner),
+                botNumber,
+                text: ".روليت"
+            });
+        } catch (e) {
+            _originalError("List roulette error:", e?.message);
+        }
+        return true;
+    }
+
+    // تنفيذ الأمر تلقائياً
+    const fakeText = `.${cmd}`;
+    try {
+        // أرسل الرسالة المزيفة أولاً
+        const fakeMsg = {
+            ...msg,
+            message: {
+                conversation: fakeText
+            }
+        };
+
+        await handleCommand(sock, jid, fakeMsg, {
+            db,
+            sender,
+            cleanSender,
+            isGroup,
+            isBotOwner: Boolean(owner),
+            botNumber,
+            text: fakeText
         });
-
-        if (!participant) return false;
-
-        return participant.admin === "admin" || participant.admin === "superadmin";
     } catch (e) {
-        _originalError("isGroupAdmin error:", e?.message);
-        return false;
+        _originalError("List response error:", e?.message);
     }
-}
 
-// جلب كل المشرفين في المجموعة (لمنشنهم في التنبيه)
-async function getGroupAdmins(sock, jid) {
-    try {
-        const metadata = await sock.groupMetadata(jid);
-        if (!metadata || !Array.isArray(metadata.participants)) return [];
-
-        return metadata.participants
-            .filter(p => p.admin === "admin" || p.admin === "superadmin")
-            .map(p => p.id)
-            .filter(Boolean);
-    } catch (e) {
-        _originalError("getGroupAdmins error:", e?.message);
-        return [];
-    }
+    return true;
 }
 
 // ============================================================
@@ -550,36 +597,22 @@ function forceStopAllGames() {
 }
 
 // ============================================================
-// 🆘 نظام الاستراحة التفاعلي (للأدمن فقط)
+// 🆘 نظام الاستراحة التفاعلي
 // ============================================================
 
-const restRequests = Object.create(null); // { jid: { timeout, sentAt } }
+const restRequests = Object.create(null);
 
 async function requestRestInGroup(sock, jid, reason = "ضغط هائل") {
     if (restRequests[jid]) return false;
 
     try {
-        // جلب المشرفين لمنشنهم
-        const adminJids = await getGroupAdmins(sock, jid);
-        const adminMentions = adminJids.length > 0 ? adminJids : [];
-
-        // بناء قائمة المنشن
-        let adminsLine = "";
-        if (adminMentions.length > 0) {
-            adminsLine = "\n\n📢 تنبيه للمشرفين:\n" +
-                adminMentions.map(j => `@${cleanNumber(j)}`).join(" ");
-        }
-
         await sock.sendMessage(jid, {
             text: `◆━─━─━─⊱☢️⊰─━─━─━◆
 ملاحظة هناك ${reason} على
  البوت يرجى ارسال امر: 
 *.استراحة*
 للحفاظ على عدم تعليق البوت
-
-⚠️ الأمر متاح للمشرفين فقط
-◆━─━─━─⊱🛑⊰─━─━─━◆${adminsLine}`,
-            mentions: adminMentions
+◆━─━─━─⊱🛑⊰─━─━─━◆`
         });
 
         const timeoutId = setTimeout(async () => {
@@ -587,15 +620,8 @@ async function requestRestInGroup(sock, jid, reason = "ضغط هائل") {
             for (const entry of stuck) stopSingleGame(entry);
 
             if (stuck.length > 0) {
-                // نرسل النتيجة مع منشن المشرفين
-                const admins = await getGroupAdmins(sock, jid);
-                const adminsLine2 = admins.length > 0
-                    ? "\n\n📢 تنبيه للمشرفين:\n" + admins.map(j => `@${cleanNumber(j)}`).join(" ")
-                    : "";
-
                 await sock.sendMessage(jid, {
-                    text: `⏰ انتهت المهلة دون استجابة.\n🛑 تم إيقاف ${stuck.length} فعالية عالقة تلقائياً للحفاظ على البوت.${adminsLine2}`,
-                    mentions: admins
+                    text: `⏰ انتهت المهلة دون استجابة.\n🛑 تم إيقاف ${stuck.length} فعالية عالقة تلقائياً للحفاظ على البوت.`
                 }).catch(() => {});
             }
 
@@ -610,26 +636,7 @@ async function requestRestInGroup(sock, jid, reason = "ضغط هائل") {
     }
 }
 
-// ============================================================
-// 🆘 أمر .استراحة — للمشرفين أو المطور فقط
-// ============================================================
-
-async function handleRestCommand(sock, jid, msg, db, senderJid, cleanSender, isOwnerUser) {
-    // التحقق من الصلاحية: إما مطور أو مشرف في المجموعة
-    let allowed = Boolean(isOwnerUser);
-
-    if (!allowed) {
-        allowed = await isGroupAdmin(sock, jid, senderJid);
-    }
-
-    if (!allowed) {
-        await sock.sendMessage(jid, {
-            text: "⛔ أمر .استراحة متاح للمشرفين فقط."
-        }, { quoted: msg }).catch(() => {});
-        return true;
-    }
-
-    // إلغاء الطلب المعلق (لو موجود)
+async function handleRestCommand(sock, jid, msg, db) {
     if (restRequests[jid]) {
         clearTimeout(restRequests[jid].timeout);
         delete restRequests[jid];
@@ -639,7 +646,6 @@ async function handleRestCommand(sock, jid, msg, db, senderJid, cleanSender, isO
     let stoppedCount = 0;
 
     if (stuck.length === 0) {
-        // لا يوجد عالق → أوقف كل الفعاليات في القروب (قرار المشرف)
         try {
             if (activeGames[jid]) { activeGames[jid]?.stopGame?.(); delete activeGames[jid]; stoppedCount++; }
             if (activeColors[jid]) { activeColors[jid]?.stopGame?.(); delete activeColors[jid]; stoppedCount++; }
@@ -658,11 +664,9 @@ async function handleRestCommand(sock, jid, msg, db, senderJid, cleanSender, isO
         await sock.sendMessage(jid, {
             text: `◆━─━─━─⊱✅⊰─━─━─━◆
 تم الاستجابة لطلب الاستراحة
-👑 بواسطة: @${cleanSender}
 🛑 عدد الفعاليات المتوقفة: \`${stoppedCount}\`
 شكراً لتعاونكم ❤️
-◆━─━─━─⊱🛑⊰─━─━─━◆`,
-            mentions: [senderJid]
+◆━─━─━─⊱🛑⊰─━─━─━◆`
         }, { quoted: msg });
     } catch {}
 
@@ -688,7 +692,6 @@ function startWatchdog(sock) {
             const idleMs = now - lastMessageAt;
             const games = getGamesDetailed();
 
-            // القاعدة 1: فعاليات عالقة → اطلب استراحة تفاعلية
             if (games.stuck > 0 && idleMs > GAME_STUCK_THRESHOLD_MS) {
                 const stuckList = getStuckGamesInGroup();
                 const affectedGroups = [...new Set(stuckList.map(g => g.jid))];
@@ -703,7 +706,6 @@ function startWatchdog(sock) {
                 return;
             }
 
-            // القاعدة 2: كل الفعاليات صحية → لا تلمس
             if (games.healthy > 0) {
                 if (games.total > MAX_GAME_COUNT) {
                     _originalWarn(`⚠️ Watchdog: عدد فعاليات مرتفع (${games.total})`);
@@ -711,7 +713,6 @@ function startWatchdog(sock) {
                 return;
             }
 
-            // القاعدة 3: تجمد الاتصال
             if (idleMs > IDLE_THRESHOLD_MS) {
                 consecutiveIdleChecks++;
                 _originalWarn(`⚠️ Watchdog: خمول ${Math.round(idleMs/60000)}د (${consecutiveIdleChecks}/${MAX_IDLE_CHECKS})`);
@@ -778,14 +779,24 @@ function createHandlers() {
                         const jid = msg?.key?.remoteJid;
                         if (!jid) continue;
 
-                        const text = getMessageTextFromMsg(msg);
-                        if (!text) continue;
-
                         const sender = getSender(msg, sock);
                         const cleanSender = jidToNumber(sender);
                         const isGroup = isGroupJid(jid);
                         const botNumber = getBotNumber(sock);
                         const owner = isOwner(cleanSender, sock, msg);
+
+                        // ============================================
+                        // 🎮 معالجة اختيار الفعالية من قائمة .العاب
+                        // ============================================
+                        if (msg.message?.listResponseMessage) {
+                            const handled = await handleGamesMenuSelection(
+                                sock, msg, jid, cleanSender, sender, db, owner, botNumber, isGroup
+                            );
+                            if (handled) continue;
+                        }
+
+                        const text = getMessageTextFromMsg(msg);
+                        if (!text) continue;
 
                         // رسالة عادية → ردود تلقائية
                         if (!text.startsWith(".")) {
@@ -794,10 +805,10 @@ function createHandlers() {
                         }
 
                         // ============================================
-                        // 🆘 .استراحة (للمشرفين/المطور فقط)
+                        // 🆘 .استراحة (يستجيب لأي عضو)
                         // ============================================
                         if (text === ".استراحة") {
-                            await handleRestCommand(sock, jid, msg, db, sender, cleanSender, owner);
+                            await handleRestCommand(sock, jid, msg, db);
                             continue;
                         }
 
