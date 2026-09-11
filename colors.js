@@ -104,7 +104,7 @@ function getMessageText(message) {
 }
 
 // ============================================================
-// عرض التحميل (8 مراحل خلال 8 ثواني)
+// عرض التحميل
 // ============================================================
 
 async function showLoading(sock, jid, msg) {
@@ -185,7 +185,6 @@ async function handleColorsCommand(
     isBotOwner
 ) {
     try {
-        // التحقق من وجود لعبة نشطة
         if (activeColors[jid]) {
             await safeSend(sock, jid, {
                 text: "⚠️ هناك فعالية الوان قائمة بالفعل في هذه المجموعة!"
@@ -193,7 +192,6 @@ async function handleColorsCommand(
             return true;
         }
 
-        // التحقق من الصلاحية
         db.gamePermissions = Array.isArray(db.gamePermissions) ? db.gamePermissions : [];
         const hasPermission = Boolean(isBotOwner) || db.gamePermissions.includes(cleanSender);
 
@@ -204,7 +202,6 @@ async function handleColorsCommand(
             return true;
         }
 
-        // التحقق من وجود لقب
         if (!hasNickname(db, cleanSender)) {
             await safeSend(sock, jid, {
                 text: "❌ يجب أن يكون لديك لقب مسجل عبر .سجل لتتمكن من بدء الفعالية."
@@ -212,7 +209,6 @@ async function handleColorsCommand(
             return true;
         }
 
-        // التحقق من الكوولدوان
         const now = Date.now();
         const cooldownTime = 5 * 60 * 1000;
         db.gameCooldown = db.gameCooldown && typeof db.gameCooldown === "object" ? db.gameCooldown : {};
@@ -232,10 +228,8 @@ async function handleColorsCommand(
         db.gameCooldown[jid] = now;
         if (typeof saveDb === "function") saveDb();
 
-        // ✅ عرض التحميل
         await showLoading(sock, jid, msg);
 
-        // إنشاء حالة اللعبة
         const colors = shuffleArray([...COLORS_LIST]);
         const gameState = {
             colors: colors,
@@ -275,21 +269,17 @@ async function handleColorsCommand(
 
         activeColors[jid] = gameState;
 
-        // إرسال رسالة البداية
         await safeSend(sock, jid, {
             text: getColorsStartMessage()
         }, { quoted: msg });
 
-        // انتظار 2 ثانية ثم إرسال السؤال الأول
         setTimeout(async () => {
             if (!gameState.isActive) return;
             await sendNextColorQuestion(sock, jid, db, gameState);
         }, 2000);
 
-        // بدء مؤقت النشاط
         startColorsInactivityTimer(sock, jid, gameState);
 
-        // تسجيل مستمع الرسائل
         const listener = async (mObj) => {
             try {
                 if (!gameState.isActive || gameState.isPaused || gameState.isWaitingNext) return;
@@ -309,12 +299,10 @@ async function handleColorsCommand(
 
                 gameState.lastActivity = Date.now();
 
-                // التحقق من الإجابة
                 if (gameState.currentColor) {
                     const normalizedAnswer = normalizeText(txt);
                     const color = gameState.currentColor;
 
-                    // التحقق من الاسم أو المرادفات
                     const isCorrect = 
                         normalizedAnswer === normalizeText(color.name) ||
                         color.aliases.some(alias => normalizedAnswer === normalizeText(alias));
@@ -325,21 +313,17 @@ async function handleColorsCommand(
                         gameState.scores[senderNumber] = (gameState.scores[senderNumber] || 0) + 1;
                         const currentScore = gameState.scores[senderNumber];
 
-                        // فوز
                         if (currentScore >= 10) {
                             const winnerClean = cleanNumber(userSender);
                             const winnerTag = `@${winnerClean}`;
 
-                            // إيقاف اللعبة
                             gameState.stopGame();
 
-                            // إرسال رسالة الفوز
                             await safeSend(sock, jid, {
                                 text: getColorsWinner(winnerClean),
                                 mentions: [userSender]
                             });
 
-                            // تحديث الرصيد
                             db.users = db.users && typeof db.users === "object" ? db.users : {};
                             if (db.users[winnerClean]) {
                                 const user = db.users[winnerClean];
@@ -348,23 +332,25 @@ async function handleColorsCommand(
                                 if (typeof saveDb === "function") saveDb();
                             }
 
-                            // رسالة الإيداع
                             await safeSend(sock, jid, {
                                 text: getColorsDeposit(winnerClean, gameState.prizeAmount),
                                 mentions: [userSender]
                             });
 
-                            // إرسال إعلان
+                            // ⭐ إعلان باللقب
+                            const winnerUser = db.users?.[winnerClean];
+                            const winnerNickname = (winnerUser && String(winnerUser.nickname || "").trim()) || winnerClean;
+
                             const adMessage = `_*█ إنــتــهــت█*_
 
 ◇🎮 نـــــــوع الفعالية:
 *{الالوان}*
 
-◇🪎 آلَــــجَــــآئـزة:
+◇🪎 آلَــــجَــــآئـزَة:
 *{ ${gameState.prizeAmount}$ }*
 
 ◇🎖️ آلَفــــــآئــز:
-@${winnerClean}
+*${winnerNickname}*
 
 ◇⏰ بّـــــــدأت:
 *{${formatDate(gameState.startTime)}}*
@@ -376,8 +362,7 @@ async function handleColorsCommand(
                                 for (const adJid of Object.keys(db.adsGroups)) {
                                     if (!db.adsGroups[adJid]) continue;
                                     await safeSend(sock, adJid, {
-                                        text: adMessage,
-                                        mentions: [userSender]
+                                        text: adMessage
                                     });
                                 }
                             }
@@ -385,12 +370,10 @@ async function handleColorsCommand(
                             return;
                         }
 
-                        // إجابة صحيحة ولكن ليس فائزاً بعد
                         await safeSend(sock, jid, {
                             text: getColorsCorrect(currentScore)
                         }, { quoted: incomingMsg });
 
-                        // إرسال السؤال التالي بعد 4 ثواني
                         if (gameState.timers.next) {
                             clearTimeout(gameState.timers.next);
                         }
@@ -429,7 +412,6 @@ async function handleColorsCommand(
 async function sendNextColorQuestion(sock, jid, db, gameState) {
     if (!gameState.isActive || gameState.isPaused) return;
     if (gameState.currentIndex >= gameState.totalQuestions) {
-        // انتهت الأسئلة - نعيد خلط القائمة
         gameState.colors = shuffleArray([...COLORS_LIST]);
         gameState.currentIndex = 0;
     }
@@ -443,15 +425,12 @@ async function sendNextColorQuestion(sock, jid, db, gameState) {
         text: getColorsQuestion(color)
     });
 
-    // بدء مؤقت السؤال (30 ثانية)
     if (gameState.timers.question) {
         clearTimeout(gameState.timers.question);
     }
 
     gameState.timers.question = setTimeout(async () => {
         if (!gameState.isActive || gameState.isPaused) return;
-
-        // لا يوجد إجابة - إرسال سؤال جديد
         gameState.isWaitingNext = false;
         await safeSend(sock, jid, {
             text: getColorsTimeout()
