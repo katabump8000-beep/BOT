@@ -376,7 +376,7 @@ async function handleEmergencyStop(sock, jid, msg, owner) {
 }
 
 // ============================================================
-// .العاب
+// .العاب - قائمة تفاعلية
 // ============================================================
 
 async function handleGamesList(sock, jid, msg, senderNumber) {
@@ -572,7 +572,7 @@ async function handleDeleteTitle(sock, jid, msg, parts, senderNumber, owner, db)
 
 async function handleFriendRelation(sock, jid, msg, parts, senderNumber, owner, db, saveDb) {
     if (!hasPermission(senderNumber, "1", owner)) {
-        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .علاقة (يجب منحها لك عبر .سماح 1).", msg);
+        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .علاقة.", msg);
         return true;
     }
 
@@ -683,7 +683,7 @@ async function handleUserDetails(sock, jid, msg, db) {
 
 async function handleRank(sock, jid, msg, parts, senderNumber, owner, db) {
     if (!hasPermission(senderNumber, "3", owner)) {
-        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .رتبته (يجب منحها لك عبر .سماح 3).", msg);
+        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .رتبته.", msg);
         return true;
     }
 
@@ -715,7 +715,7 @@ async function handleRank(sock, jid, msg, parts, senderNumber, owner, db) {
 
 async function handleInteraction(sock, jid, msg, parts, senderNumber, owner, db) {
     if (!hasPermission(senderNumber, "4", owner)) {
-        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .تفاعله (يجب منحها لك عبر .سماح 4).", msg);
+        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .تفاعله.", msg);
         return true;
     }
 
@@ -747,7 +747,7 @@ async function handleInteraction(sock, jid, msg, parts, senderNumber, owner, db)
 
 async function handleDeposit(sock, jid, msg, parts, senderNumber, owner, db) {
     if (!hasPermission(senderNumber, "1", owner)) {
-        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .رصيد (يجب منحها لك عبر .سماح 1).", msg);
+        await sendText(sock, jid, "❌ ليس لديك صلاحية لاستخدام أمر .رصيد.", msg);
         return true;
     }
 
@@ -1592,5 +1592,9 @@ function isGamesBlocked() {
 }
 
 // ============================================================
-// exports
-// =======================================================
+// exports - تأكد من وجود handleCommand
+// ============================================================
+
+module.exports = {
+    handleCommand,
+    getMessageText
