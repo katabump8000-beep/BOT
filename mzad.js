@@ -7,7 +7,7 @@
 "use strict";
 
 // ============================================================
-// قائمة القطع الأثرية مع الإيموجي والشرح (تم إزالة المكررات)
+// قائمة القطع الأثرية مع الإيموجي والشرح
 // ============================================================
 
 const MAZAD_ITEMS = [
@@ -136,7 +136,7 @@ function getRandomMazadItem() {
 }
 
 // ============================================================
-// رسائل المزاد (معدلة)
+// رسائل المزاد
 // ============================================================
 
 function getMazadStartMessage(item) {
@@ -162,7 +162,6 @@ function getMazadInstructions() {
 *🎤▬▬▬▬▬▬▬▬▬▬▬▬🎤*`;
 }
 
-// ✅ رسالة الفائز الجديدة حسب الطلب
 function getMazadWinner(user, item, amount) {
     return `◆━─━─━─⊱${item.emoji}⊰─━─━─━◆
 
@@ -404,7 +403,7 @@ async function handleMazadBid(
 }
 
 // ============================================================
-// إنهاء المزاد (معدل مع رسالة الفائز الجديدة)
+// إنهاء المزاد (⭐ معدّل: استخدام اللقب في الإعلان)
 // ============================================================
 
 async function endMazad(sock, jid, db, saveDb, mazadState) {
@@ -436,22 +435,26 @@ async function endMazad(sock, jid, db, saveDb, mazadState) {
 
         if (typeof saveDb === "function") saveDb();
 
-        // ✅ رسالة الفائز الجديدة
+        // رسالة الفائز داخل القروب (تبقى بالمنشن)
         await safeSend(sock, jid, {
             text: getMazadWinner(winner, item, amount),
             mentions: [`${winner}@s.whatsapp.net`]
         });
+
+        // ⭐ إعلان ADS باللقب
+        const winnerUser = db.users?.[winner];
+        const winnerNickname = (winnerUser && String(winnerUser.nickname || "").trim()) || winner;
 
         const adMessage = `_*█ إنــتــهــت█*_
 
 ◇🎮 نـــــــوع الفعالية:
 *{مزاد}*
 
-◇🪎 آلَــــجَــــآئـزة:
+◇🪎 آلَــــجَــــآئـزَة:
 *{${item.emoji} ${item.name}}*
 
 ◇🎖️ آلَفــــــآئــز:
-@${winner}
+*${winnerNickname}*
 
 ◇💰 سعر الشراء:
 *{${amount}$}*
@@ -463,8 +466,8 @@ async function endMazad(sock, jid, db, saveDb, mazadState) {
             for (const adJid of Object.keys(db.adsGroups)) {
                 if (!db.adsGroups[adJid]) continue;
                 await safeSend(sock, adJid, {
-                    text: adMessage,
-                    mentions: [`${winner}@s.whatsapp.net`]
+                    text: adMessage
+                    // ⭐ لا mentions
                 });
             }
         }
