@@ -1,11 +1,54 @@
 // ============================================================
 // index.js
 // ALJESAT BOT
-//
-// Main Entry Point - يبدأ البوت ويربط جميع الملفات
+// Main Entry Point + Watchdog + Rest System + LogGuard
 // ============================================================
 
 "use strict";
+
+// ============================================================
+// 🛡️ حماية من طوفان السجلات (Railway 500 logs/sec)
+// ============================================================
+
+const fs = require("fs");
+const path = require("path");
+
+const _originalLog = console.log.bind(console);
+const _originalError = console.error.bind(console);
+const _originalWarn = console.warn.bind(console);
+
+const logGuard = {
+    count: 0,
+    windowStart: Date.now(),
+    WINDOW_MS: 1000,
+    MAX_PER_WINDOW: 30,
+    dropped: 0,
+    silenced: false,
+
+    canLog() {
+        const now = Date.now();
+        if (now - this.windowStart >= this.WINDOW_MS) {
+            this.windowStart = now;
+            this.count = 0;
+            if (this.silenced) {
+                this.silenced = false;
+                _originalWarn(`⚠️ [LogGuard] تم استئناف السجلات. تم إسقاط ${this.dropped} سطر.`);
+                this.dropped = 0;
+            }
+        }
+        this.count++;
+        if (this.count > this.MAX_PER_WINDOW) {
+            this.silenced = true;
+            this.dropped++;
+            return false;
+        }
+        return true;
+    }
+};
+
+console.log = (...args) => { if (logGuard.canLog()) _originalLog(...args); };
+console.error = (...args) => { if (logGuard.canLog()) _originalError(...args); };
+console.warn = (...args) => { if (logGuard.canLog()) _originalWarn(...args); };
 
 // ============================================================
 // Core
@@ -19,20 +62,14 @@ const {
     jidToNumber,
     isGroupJid,
     isOwner,
-    cleanNumber  // ✅ تمت الإضافة
+    cleanNumber
 } = require("./bot");
-
-const fs = require("fs");
-const path = require("path");
 
 // ============================================================
 // Commands
 // ============================================================
 
-const {
-    handleCommand,
-    getNormalizedCommand
-} = require("./commands");
+const { handleCommand } = require("./commands");
 
 // ============================================================
 // Admin
@@ -41,101 +78,76 @@ const {
 const {
     handleGroupJoin,
     startAdminMonitoring,
-    stopAdminMonitoring,
-    handleAdminCommand
+    stopAdminMonitoring
 } = require("./admin");
 
 // ============================================================
-// Menu Games
+// Games
 // ============================================================
 
-const {
-    activeGames
-} = require("./menu");
-
-// ============================================================
-// Duel Games
-// ============================================================
-
-const {
-    activeCasinos,
-    isSarahaActive
-} = require("./duel");
-
-// ============================================================
-// Saraha Game
-// ============================================================
-
-const {
-    activeSaraha,
-    handleSarahaCommand,
-    checkSarahaActive
-} = require("./saraha");
-
-// ============================================================
-// Mazad System
-// ============================================================
-
+const { activeGames } = require("./menu");
+const { activeCasinos, isSarahaActive } = require("./duel");
+const { activeSaraha, handleSarahaCommand } = require("./saraha");
 const {
     activeMazads,
     handleMazadCommand,
-    checkMazadActive,
     handleMazadBid,
     handleMazadInventory,
     handleMazadSend,
     handleMazadCancelSend
 } = require("./mzad");
-
-// ============================================================
-// Colors Game
-// ============================================================
-
-const {
-    activeColors,
-    handleColorsCommand,
-    checkColorsActive
-} = require("./colors");
-
-// ============================================================
-// Animals Game
-// ============================================================
-
-const {
-    activeAnimals,
-    handleAnimalsCommand,
-    checkAnimalsActive
-} = require("./animals");
+const { activeColors, handleColorsCommand } = require("./colors");
+const { activeAnimals, handleAnimalsCommand } = require("./animals");
 
 // ============================================================
 // Runtime
 // ============================================================
 
-let reconnectTimer = null;
 let autoSaveInterval = null;
 let autoSaveEnabled = false;
 let autoSaveGroupJid = null;
 
+// ⏱️ Watchdog
+let watchdogInterval = null;
+let lastMessageAt = Date.now();
+let lastGroupUpdateAt = Date.now();
+let lastSocketRef = null;
+let consecutiveIdleChecks = 0;
+
+const WATCHDOG_CHECK_MS = 60 * 1000;
+const IDLE_THRESHOLD_MS = 15 * 60 * 1000;
+const GAME_STUCK_THRESHOLD_MS = 25 * 60 * 1000;
+const MAX_IDLE_CHECKS = 15;
+const MAX_GAME_COUNT = 8;
+
 // ============================================================
-// معالج الأخطاء العام (شبكة أمان)
+// 🛡️ شبكة أمان مبسّطة
 // ============================================================
+
+let lastExceptionAt = 0;
+const EXCEPTION_COOLDOWN_MS = 5000;
 
 process.on('uncaughtException', (error) => {
-    console.error('❌ خطأ غير متوقع (Uncaught Exception):', error?.stack || error?.message || error);
+    const now = Date.now();
+    if (now - lastExceptionAt < EXCEPTION_COOLDOWN_MS) return;
+    lastExceptionAt = now;
+    _originalError('❌ Uncaught Exception:', error?.message || error);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ رفض وعد غير معالج (Unhandled Rejection):', reason?.stack || reason?.message || reason);
+process.on('unhandledRejection', (reason) => {
+    const now = Date.now();
+    if (now - lastExceptionAt < EXCEPTION_COOLDOWN_MS) return;
+    lastExceptionAt = now;
+    _originalError('❌ Unhandled Rejection:', reason?.message || reason);
 });
 
 // ============================================================
-// استخراج النص من الرسالة
+// Helpers
 // ============================================================
 
 function getMessageTextFromMsg(msg) {
     if (!msg || !msg.message) return "";
-
     const message = msg.message;
-
     return (
         message.conversation ||
         message.extendedTextMessage?.text ||
@@ -149,159 +161,110 @@ function getMessageTextFromMsg(msg) {
     ).trim();
 }
 
-// ============================================================
-// Sender
-// ============================================================
-
 function getSender(msg, sock) {
     try {
-        if (msg?.key?.fromMe) {
-            return sock?.user?.id || "";
-        }
+        if (msg?.key?.fromMe) return sock?.user?.id || "";
         return msg?.key?.participant || msg?.key?.remoteJid || "";
-    } catch (error) {
-        console.error("❌ خطأ في getSender:", error?.message || error);
+    } catch {
         return "";
     }
 }
-
-// ============================================================
-// Bot Number
-// ============================================================
 
 function getBotNumber(sock) {
     try {
         return jidToNumber(sock?.user?.id || "");
-    } catch (error) {
-        console.error("❌ خطأ في getBotNumber:", error?.message || error);
+    } catch {
         return "";
     }
 }
 
-// ============================================================
-// Ignore Messages
-// ============================================================
-
 function shouldIgnoreMessage(msg) {
     try {
         if (!msg?.message) return true;
-
         const jid = msg?.key?.remoteJid;
         if (!jid) return true;
-
         if (jid === "status@broadcast") return true;
-
         if (msg?.key?.fromMe) {
             const text = getMessageTextFromMsg(msg);
             return !text || !text.startsWith(".");
         }
-
         return false;
-    } catch (error) {
-        console.error("❌ خطأ في shouldIgnoreMessage:", error?.message || error);
+    } catch {
         return true;
     }
 }
 
 // ============================================================
-// تحديث مراقبة الإشراف
+// Admin Monitoring
 // ============================================================
 
 function setupAdminMonitoring(sock) {
     try {
         const db = getDb();
-        if (!db) {
-            console.warn("⚠️ قاعدة البيانات غير متوفرة لبدء مراقبة الإشراف.");
-            return;
-        }
-
+        if (!db) return;
         stopAdminMonitoring();
         startAdminMonitoring(sock, db, saveDb);
-        console.log("✅ تم بدء مراقبة الإشراف.");
-    } catch (error) {
-        console.error("❌ خطأ في setupAdminMonitoring:", error?.message || error);
+    } catch (e) {
+        _originalError("Admin monitoring error:", e?.message);
     }
 }
 
 // ============================================================
-// ════════════════════════════════════════════════════
-// ميزة مراقبة المغادرين وحذف الألقاب
-// ════════════════════════════════════════════════════
+// ميزة حذف اللقب عند المغادرة
 // ============================================================
 
 async function handleLeaveRemoveNickname(sock, update, db) {
     try {
         if (!update || typeof update !== "object") return false;
-
         const { id, participants, action } = update;
 
-        if (action !== "remove" || !id || !Array.isArray(participants) || participants.length === 0) {
+        if (action !== "remove" || !id || !Array.isArray(participants) || !participants.length) {
             return false;
         }
+        if (!db.organizedGroups || !db.organizedGroups[id]) return false;
 
-        if (!db.organizedGroups || !db.organizedGroups[id]) {
-            return false;
-        }
-
+        let changed = false;
         for (const participant of participants) {
             const cleanNum = cleanNumber(participant);
             if (!cleanNum) continue;
-
             const user = db.users && db.users[cleanNum];
             if (!user) continue;
-
             if (user.nickname && String(user.nickname).trim()) {
                 user.nickname = "";
-                console.log(`🗑️ تم حذف لقب العضو ${cleanNum} بعد مغادرته القروب ${id}`);
+                changed = true;
             }
         }
 
-        if (typeof saveDb === "function") {
-            saveDb();
-        }
-
-        return true;
-
-    } catch (error) {
-        console.error("❌ خطأ في handleLeaveRemoveNickname:", error?.message || error);
+        if (changed && typeof saveDb === "function") saveDb();
+        return changed;
+    } catch {
         return false;
     }
 }
 
 // ============================================================
-// ════════════════════════════════════════════════════
-// ميزة الحفظ التلقائي لـ database.json
-// ════════════════════════════════════════════════════
+// 💾 الحفظ التلقائي
 // ============================================================
 
 const DB_FILE = path.join(__dirname, "database.json");
 
 function getDatabaseContent() {
     try {
-        if (fs.existsSync(DB_FILE)) {
-            const content = fs.readFileSync(DB_FILE, "utf8");
-            return content;
-        }
+        if (fs.existsSync(DB_FILE)) return fs.readFileSync(DB_FILE, "utf8");
         return null;
-    } catch (error) {
-        console.error("❌ خطأ في قراءة database.json:", error?.message || error);
+    } catch {
         return null;
     }
 }
 
 async function sendDatabaseBackup(sock) {
     if (!autoSaveEnabled || !autoSaveGroupJid || !sock) return;
-
     try {
         const dbContent = getDatabaseContent();
-        if (!dbContent) {
-            console.warn("⚠️ لا يمكن قراءة database.json لإرسال النسخة الاحتياطية");
-            return;
-        }
+        if (!dbContent) return;
 
         const maxLength = 65536;
         const parts = [];
-        
         if (dbContent.length > maxLength) {
             for (let i = 0; i < dbContent.length; i += maxLength) {
                 parts.push(dbContent.substring(i, i + maxLength));
@@ -312,63 +275,40 @@ async function sendDatabaseBackup(sock) {
 
         const timestamp = new Date().toLocaleString('ar-EG', {
             timeZone: 'Africa/Cairo',
-            hour12: false,
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            hour12: false
         });
 
         for (let i = 0; i < parts.length; i++) {
             const isLast = i === parts.length - 1;
-            const header = `📦 *نسخة احتياطية من database.json*\n🕐 التاريخ: ${timestamp}\n📊 الجزء ${i + 1}/${parts.length}\n\n`;
-            const footer = isLast ? `\n\n✅ تم حفظ نسخة احتياطية بنجاح ✅` : '';
-            
+            const header = `📦 *نسخة احتياطية*\n🕐 ${timestamp}\n📊 جزء ${i + 1}/${parts.length}\n\n`;
+            const footer = isLast ? `\n\n✅ تم الحفظ ✅` : '';
             await sock.sendMessage(autoSaveGroupJid, {
                 text: header + parts[i] + footer
             });
         }
-
-        console.log(`✅ تم إرسال نسخة احتياطية من database.json إلى ${autoSaveGroupJid}`);
-
-    } catch (error) {
-        console.error("❌ خطأ في إرسال النسخة الاحتياطية:", error?.message || error);
+    } catch (e) {
+        _originalError("Backup error:", e?.message);
     }
 }
 
 function startAutoSave(sock, jid) {
-    if (autoSaveInterval) {
-        clearInterval(autoSaveInterval);
-        autoSaveInterval = null;
-    }
-
+    if (autoSaveInterval) clearInterval(autoSaveInterval);
     autoSaveEnabled = true;
     autoSaveGroupJid = jid;
 
-    setTimeout(() => {
-        sendDatabaseBackup(sock);
-    }, 3000);
-
-    autoSaveInterval = setInterval(() => {
-        sendDatabaseBackup(sock);
-    }, 4 * 60 * 60 * 1000);
-
-    console.log(`✅ تم تفعيل الحفظ التلقائي لـ database.json كل 4 ساعات في المجموعة ${jid}`);
+    setTimeout(() => sendDatabaseBackup(sock), 3000);
+    autoSaveInterval = setInterval(() => sendDatabaseBackup(sock), 4 * 60 * 60 * 1000);
 }
 
 function stopAutoSave() {
-    if (autoSaveInterval) {
-        clearInterval(autoSaveInterval);
-        autoSaveInterval = null;
-    }
+    if (autoSaveInterval) clearInterval(autoSaveInterval);
+    autoSaveInterval = null;
     autoSaveEnabled = false;
     autoSaveGroupJid = null;
-    console.log("🛑 تم إيقاف الحفظ التلقائي لـ database.json");
 }
 
 // ============================================================
-// معالجة الأوامر الخاصة بالردود (في نص الرسالة العادية)
+// 💬 الردود التلقائية
 // ============================================================
 
 async function handleAutoReplies(sock, jid, msg, text, sender, cleanSender, db, saveDb) {
@@ -377,50 +317,36 @@ async function handleAutoReplies(sock, jid, msg, text, sender, cleanSender, db, 
 
         if (db.repliesEnabled && db.repliesEnabled[jid]) {
             const badWords = ["كول خرا", "كول خراا", "يلعون", "يلعن امك", "يلعن ابوك"];
-            const isBadWord = badWords.some(word => text.includes(word));
+            const isBadWord = badWords.some(w => text.includes(w));
 
             if (isBadWord) {
                 let isAdminUser = false;
                 try {
                     const metadata = await sock.groupMetadata(jid);
-                    const participant = metadata.participants.find(p => p.id === sender);
-                    if (participant && (participant.admin === "admin" || participant.admin === "superadmin")) {
+                    const p = metadata.participants.find(p => p.id === sender);
+                    if (p && (p.admin === "admin" || p.admin === "superadmin")) {
                         isAdminUser = true;
                     }
-                } catch (_) {}
+                } catch {}
 
-                if (isAdminUser) {
-                    await sock.sendMessage(jid, {
-                        text: `═════════════════════
-لولا رتبتك لكنت اعطيتك درسا عن الردود
-═════════════════════`
-                    });
-                } else {
-                    await sock.sendMessage(jid, {
-                        text: `═════════════════
-الخرا لسانه خرا مع الكل
-═════════════════`
-                    });
-                }
+                await sock.sendMessage(jid, {
+                    text: isAdminUser
+                        ? `═════════════════════\nلولا رتبتك لكنت اعطيتك درسا عن الردود\n═════════════════════`
+                        : `═════════════════\nالخرا لسانه خرا مع الكل\n═════════════════`
+                });
                 return;
             }
         }
 
         if (db.ahaEnabled && db.ahaEnabled[jid]) {
-            const ahaPattern = /احا{1,}/;
-            if (ahaPattern.test(text)) {
+            if (/احا{1,}/.test(text)) {
                 db.ahaCooldown = db.ahaCooldown || {};
                 const now = Date.now();
-                const lastAha = db.ahaCooldown[jid] || 0;
-
-                if (now - lastAha > 5 * 60 * 1000) {
+                if (now - (db.ahaCooldown[jid] || 0) > 5 * 60 * 1000) {
                     db.ahaCooldown[jid] = now;
                     saveDb();
-
                     await sock.sendMessage(jid, {
-                        text: `═════ احا وأخواتها ═════
-احا. احيه. احوه. احات. احاوات.اح
-══════════════════`
+                        text: `═════ احا وأخواتها ═════\nاحا. احيه. احوه. احات. احاوات.اح\n══════════════════`
                     });
                 }
                 return;
@@ -435,10 +361,297 @@ async function handleAutoReplies(sock, jid, msg, text, sender, cleanSender, db, 
                 saveDb();
             }
         }
-
-    } catch (error) {
-        console.error("❌ خطأ في handleAutoReplies:", error?.message || error);
+    } catch (e) {
+        _originalError("AutoReplies error:", e?.message);
     }
+}
+
+// ============================================================
+// 🎮 دوال تحليل الفعاليات
+// ============================================================
+
+function getGamesDetailed() {
+    const now = Date.now();
+    const details = {
+        total: 0,
+        stuck: 0,
+        healthy: 0,
+        list: []
+    };
+
+    const checkGame = (jid, game, name, ownTimeout) => {
+        details.total++;
+        const lastActivity = game?.lastActivity || game?.startTime || 0;
+        const idle = now - lastActivity;
+        const isStuck = idle > ownTimeout + 60 * 1000;
+
+        if (isStuck) {
+            details.stuck++;
+            details.list.push({ jid, name, idle, status: "STUCK" });
+        } else {
+            details.healthy++;
+            details.list.push({ jid, name, idle, status: "HEALTHY" });
+        }
+    };
+
+    try {
+        for (const jid of Object.keys(activeGames || {})) {
+            checkGame(jid, activeGames[jid], "لعبة", 5 * 60 * 1000);
+        }
+        for (const jid of Object.keys(activeCasinos || {})) {
+            checkGame(jid, activeCasinos[jid], "روليت", 25 * 60 * 1000);
+        }
+        for (const jid of Object.keys(activeSaraha || {})) {
+            checkGame(jid, activeSaraha[jid], "صراحة", 5 * 60 * 1000);
+        }
+        for (const jid of Object.keys(activeColors || {})) {
+            checkGame(jid, activeColors[jid], "ألوان", 5 * 60 * 1000);
+        }
+        for (const jid of Object.keys(activeAnimals || {})) {
+            checkGame(jid, activeAnimals[jid], "حيوانات", 5 * 60 * 1000);
+        }
+        for (const jid of Object.keys(activeMazads || {})) {
+            checkGame(jid, activeMazads[jid], "مزاد", 35 * 60 * 1000);
+        }
+    } catch {}
+
+    return details;
+}
+
+function getStuckGamesInGroup() {
+    const now = Date.now();
+    const stuck = [];
+
+    const check = (jid, game, name, ownTimeout) => {
+        const last = game?.lastActivity || game?.startTime || 0;
+        if ((now - last) > ownTimeout + 60 * 1000) {
+            stuck.push({ jid, name, game });
+        }
+    };
+
+    try {
+        for (const jid of Object.keys(activeGames || {})) {
+            check(jid, activeGames[jid], "لعبة", 5 * 60 * 1000);
+        }
+        for (const jid of Object.keys(activeColors || {})) {
+            check(jid, activeColors[jid], "ألوان", 5 * 60 * 1000);
+        }
+        for (const jid of Object.keys(activeAnimals || {})) {
+            check(jid, activeAnimals[jid], "حيوانات", 5 * 60 * 1000);
+        }
+        for (const jid of Object.keys(activeSaraha || {})) {
+            check(jid, activeSaraha[jid], "صراحة", 5 * 60 * 1000);
+        }
+        for (const jid of Object.keys(activeCasinos || {})) {
+            check(jid, activeCasinos[jid], "روليت", 25 * 60 * 1000);
+        }
+        for (const jid of Object.keys(activeMazads || {})) {
+            check(jid, activeMazads[jid], "مزاد", 35 * 60 * 1000);
+        }
+    } catch {}
+
+    return stuck;
+}
+
+function stopSingleGame(entry) {
+    try {
+        const { jid, name, game } = entry;
+        if (name === "مزاد") {
+            try { game?.stopMazad?.(); } catch {}
+            delete activeMazads[jid];
+        } else if (name === "روليت") {
+            try { game?.stopGame?.(); } catch {}
+            delete activeCasinos[jid];
+        } else {
+            try { game?.stopGame?.(); } catch {}
+            delete activeGames[jid];
+            delete activeColors[jid];
+            delete activeAnimals[jid];
+            delete activeSaraha[jid];
+        }
+        return true;
+    } catch { return false; }
+}
+
+function forceStopAllGames() {
+    try {
+        for (const jid of Object.keys(activeGames || {})) {
+            try {
+                const g = activeGames[jid];
+                if (g && typeof g.stopGame === "function") g.stopGame();
+                else delete activeGames[jid];
+            } catch { delete activeGames[jid]; }
+        }
+        for (const jid of Object.keys(activeCasinos || {})) {
+            try {
+                const c = activeCasinos[jid];
+                if (c && typeof c.stopGame === "function") c.stopGame();
+                delete activeCasinos[jid];
+            } catch { delete activeCasinos[jid]; }
+        }
+        for (const jid of Object.keys(activeSaraha || {})) {
+            try { activeSaraha[jid]?.stopGame?.(); } catch {}
+            delete activeSaraha[jid];
+        }
+        for (const jid of Object.keys(activeColors || {})) {
+            try { activeColors[jid]?.stopGame?.(); } catch {}
+            delete activeColors[jid];
+        }
+        for (const jid of Object.keys(activeAnimals || {})) {
+            try { activeAnimals[jid]?.stopGame?.(); } catch {}
+            delete activeAnimals[jid];
+        }
+        for (const jid of Object.keys(activeMazads || {})) {
+            try { activeMazads[jid]?.stopMazad?.(); } catch {}
+            delete activeMazads[jid];
+        }
+    } catch {}
+}
+
+// ============================================================
+// 🆘 نظام الاستراحة التفاعلي
+// ============================================================
+
+const restRequests = Object.create(null); // { jid: { timeout, sentAt } }
+
+async function requestRestInGroup(sock, jid, reason = "ضغط هائل") {
+    if (restRequests[jid]) return false;
+
+    try {
+        await sock.sendMessage(jid, {
+            text: `◆━─━─━─⊱☢️⊰─━─━─━◆
+ملاحظة هناك ${reason} على
+ البوت يرجى ارسال امر: 
+*.استراحة*
+للحفاظ على عدم تعليق البوت
+◆━─━─━─⊱🛑⊰─━─━─━◆`
+        });
+
+        const timeoutId = setTimeout(async () => {
+            const stuck = getStuckGamesInGroup().filter(g => g.jid === jid);
+            for (const entry of stuck) stopSingleGame(entry);
+
+            if (stuck.length > 0) {
+                await sock.sendMessage(jid, {
+                    text: `⏰ انتهت المهلة دون استجابة.\n🛑 تم إيقاف ${stuck.length} فعالية عالقة تلقائياً للحفاظ على البوت.`
+                }).catch(() => {});
+            }
+
+            delete restRequests[jid];
+        }, 60 * 1000);
+
+        restRequests[jid] = { timeout: timeoutId, sentAt: Date.now() };
+        return true;
+    } catch (e) {
+        _originalError("requestRestInGroup error:", e?.message);
+        return false;
+    }
+}
+
+async function handleRestCommand(sock, jid, msg, db) {
+    if (restRequests[jid]) {
+        clearTimeout(restRequests[jid].timeout);
+        delete restRequests[jid];
+    }
+
+    const stuck = getStuckGamesInGroup().filter(g => g.jid === jid);
+    let stoppedCount = 0;
+
+    if (stuck.length === 0) {
+        try {
+            if (activeGames[jid]) { activeGames[jid]?.stopGame?.(); delete activeGames[jid]; stoppedCount++; }
+            if (activeColors[jid]) { activeColors[jid]?.stopGame?.(); delete activeColors[jid]; stoppedCount++; }
+            if (activeAnimals[jid]) { activeAnimals[jid]?.stopGame?.(); delete activeAnimals[jid]; stoppedCount++; }
+            if (activeSaraha[jid]) { activeSaraha[jid]?.stopGame?.(); delete activeSaraha[jid]; stoppedCount++; }
+            if (activeCasinos[jid]) { activeCasinos[jid]?.stopGame?.(); delete activeCasinos[jid]; stoppedCount++; }
+            if (activeMazads[jid]) { activeMazads[jid]?.stopMazad?.(); delete activeMazads[jid]; stoppedCount++; }
+        } catch {}
+    } else {
+        for (const entry of stuck) {
+            if (stopSingleGame(entry)) stoppedCount++;
+        }
+    }
+
+    try {
+        await sock.sendMessage(jid, {
+            text: `◆━─━─━─⊱✅⊰─━─━─━◆
+تم الاستجابة لطلب الاستراحة
+🛑 عدد الفعاليات المتوقفة: \`${stoppedCount}\`
+شكراً لتعاونكم ❤️
+◆━─━─━─⊱🛑⊰─━─━─━◆`
+        }, { quoted: msg });
+    } catch {}
+
+    lastMessageAt = Date.now();
+    return true;
+}
+
+// ============================================================
+// 🐕 Watchdog
+// ============================================================
+
+function startWatchdog(sock) {
+    lastSocketRef = sock;
+    lastMessageAt = Date.now();
+    lastGroupUpdateAt = Date.now();
+    consecutiveIdleChecks = 0;
+
+    if (watchdogInterval) clearInterval(watchdogInterval);
+
+    watchdogInterval = setInterval(async () => {
+        try {
+            const now = Date.now();
+            const idleMs = now - lastMessageAt;
+            const games = getGamesDetailed();
+
+            // القاعدة 1: فعاليات عالقة → اطلب استراحة تفاعلية
+            if (games.stuck > 0 && idleMs > GAME_STUCK_THRESHOLD_MS) {
+                const stuckList = getStuckGamesInGroup();
+                const affectedGroups = [...new Set(stuckList.map(g => g.jid))];
+
+                for (const grpJid of affectedGroups) {
+                    if (!restRequests[grpJid]) {
+                        await requestRestInGroup(sock, grpJid, "ضغط هائل");
+                    }
+                }
+
+                consecutiveIdleChecks = 0;
+                return;
+            }
+
+            // القاعدة 2: كل الفعاليات صحية → لا تلمس
+            if (games.healthy > 0) {
+                if (games.total > MAX_GAME_COUNT) {
+                    _originalWarn(`⚠️ Watchdog: عدد فعاليات مرتفع (${games.total})`);
+                }
+                return;
+            }
+
+            // القاعدة 3: تجمد الاتصال
+            if (idleMs > IDLE_THRESHOLD_MS) {
+                consecutiveIdleChecks++;
+                _originalWarn(`⚠️ Watchdog: خمول ${Math.round(idleMs/60000)}د (${consecutiveIdleChecks}/${MAX_IDLE_CHECKS})`);
+
+                if (consecutiveIdleChecks >= MAX_IDLE_CHECKS) {
+                    _originalWarn("🔄 Watchdog: إعادة تشغيل الاتصال قسرياً...");
+                    consecutiveIdleChecks = 0;
+                    try {
+                        if (lastSocketRef && lastSocketRef.ws) lastSocketRef.ws.close();
+                    } catch {}
+                }
+            } else {
+                consecutiveIdleChecks = 0;
+            }
+
+        } catch (e) {
+            _originalError("Watchdog error:", e?.message);
+        }
+    }, WATCHDOG_CHECK_MS);
+}
+
+function stopWatchdog() {
+    if (watchdogInterval) clearInterval(watchdogInterval);
+    watchdogInterval = null;
 }
 
 // ============================================================
@@ -448,31 +661,29 @@ async function handleAutoReplies(sock, jid, msg, text, sender, cleanSender, db, 
 function createHandlers() {
     return {
         onConnectionOpen: async (sock) => {
-            console.log("🔄 جارٍ تهيئة الخدمات...");
             setupAdminMonitoring(sock);
 
             const db = getDb();
             if (db && db.autoSaveEnabled && db.autoSaveGroupJid) {
-                const jid = db.autoSaveGroupJid;
-                console.log(`🔄 إعادة تفعيل الحفظ التلقائي في المجموعة ${jid}`);
-                startAutoSave(sock, jid);
+                startAutoSave(sock, db.autoSaveGroupJid);
             }
 
-            console.log("✅ جميع الخدمات جاهزة.");
+            startWatchdog(sock);
+            _originalLog("✅ البوت جاهز.");
         },
 
-        onConnectionClose: async (sock, update) => {
-            console.log("🔄 جارٍ إيقاف الخدمات بسبب انقطاع الاتصال...");
+        onConnectionClose: async () => {
             stopAdminMonitoring();
-            console.log("✅ تم إيقاف الخدمات مؤقتاً.");
+            stopWatchdog();
         },
 
         onMessage: async (sock, event, context) => {
             try {
-                const { messages, type } = event || {};
+                lastMessageAt = Date.now();
 
+                const { messages, type } = event || {};
                 if (type !== "notify") return;
-                if (!Array.isArray(messages) || messages.length === 0) return;
+                if (!Array.isArray(messages) || !messages.length) return;
 
                 const db = context.db || getDb();
 
@@ -492,245 +703,183 @@ function createHandlers() {
                         const botNumber = getBotNumber(sock);
                         const owner = isOwner(cleanSender, sock, msg);
 
+                        // رسالة عادية → ردود تلقائية
                         if (!text.startsWith(".")) {
                             await handleAutoReplies(sock, jid, msg, text, sender, cleanSender, db, saveDb);
                             continue;
                         }
 
-                        if (text.startsWith(".")) {
-                            // أمر .حفظ
-                            if (text === ".حفظ" || text.startsWith(".حفظ ")) {
-                                const parts = text.split(/\s+/);
-                                const action = parts.length > 1 ? parts[1].toLowerCase() : "";
-
-                                if (!owner) {
-                                    await sock.sendMessage(jid, {
-                                        text: "⛔ هذا الأمر للمطور فقط.",
-                                        quoted: msg
-                                    });
-                                    continue;
-                                }
-
-                                if (action === "on") {
-                                    db.autoSaveEnabled = true;
-                                    db.autoSaveGroupJid = jid;
-                                    saveDb();
-                                    startAutoSave(sock, jid);
-
-                                    await sock.sendMessage(jid, {
-                                        text: `✅ *تم تفعيل الحفظ التلقائي*\n\n📂 سيتم حفظ نسخة من database.json\n🕐 كل 4 ساعات\n📍 في هذا القروب\n\n📌 سيتم إرسال أول نسخة خلال 3 ثواني.`,
-                                        quoted: msg
-                                    });
-
-                                } else if (action === "off") {
-                                    db.autoSaveEnabled = false;
-                                    db.autoSaveGroupJid = null;
-                                    saveDb();
-                                    stopAutoSave();
-
-                                    await sock.sendMessage(jid, {
-                                        text: `❌ *تم إيقاف الحفظ التلقائي*\n\n📂 لن يتم إرسال نسخ احتياطية من database.json بعد الآن.`,
-                                        quoted: msg
-                                    });
-
-                                } else {
-                                    const status = db.autoSaveEnabled ? "🟢 مفعّل" : "🔴 غير مفعّل";
-                                    const group = db.autoSaveGroupJid || "لم يتم التحديد";
-                                    await sock.sendMessage(jid, {
-                                        text: `📊 *حالة الحفظ التلقائي*\n\n📂 الحالة: ${status}\n📍 المجموعة: ${group}\n🕐 التكرار: كل 4 ساعات\n\n.حفظ on - لتفعيل\n.حفظ off - لإيقاف`,
-                                        quoted: msg
-                                    });
-                                }
-                                continue;
-                            }
-
-                            // أمر المزاد السري
-                            if (text === ".548484") {
-                                if (!owner) {
-                                    try {
-                                        await sock.sendMessage(jid, { delete: msg.key });
-                                    } catch (_) {}
-                                    
-                                    await sock.sendMessage(jid, {
-                                        text: "⛔ هذا الأمر للمطور فقط.",
-                                        quoted: msg
-                                    });
-                                    continue;
-                                }
-
-                                try {
-                                    await sock.sendMessage(jid, { delete: msg.key });
-                                } catch (_) {}
-                                
-                                db.mazadCreator = cleanSender;
-                                saveDb();
-                                
-                                await sock.sendMessage(jid, {
-                                    text: "✅ تم تفعيل وضع منشئ المزاد. يمكنك الآن استخدام .مزاد",
-                                    quoted: msg
-                                });
-                                continue;
-                            }
-
-                            // أمر المزاد
-                            if (text === ".مزاد") {
-                                const handled = await handleMazadCommand(
-                                    sock, jid, msg, db, saveDb, cleanSender, owner
-                                );
-                                if (handled) continue;
-                            }
-
-                            // أمر .ادفع
-                            if (text.startsWith(".ادفع")) {
-                                const parts = text.split(/\s+/);
-                                const amount = parseInt(parts[1]);
-                                if (!isNaN(amount) && amount > 0) {
-                                    const handled = await handleMazadBid(
-                                        sock, jid, msg, db, saveDb, cleanSender, amount
-                                    );
-                                    if (handled) continue;
-                                }
-                            }
-
-                            // أمر .مخزوني
-                            if (text === ".مخزوني") {
-                                const handled = await handleMazadInventory(
-                                    sock, jid, msg, db, cleanSender
-                                );
-                                if (handled) continue;
-                            }
-
-                            // أمر .ارسال
-                            if (text.startsWith(".ارسال")) {
-                                const handled = await handleMazadSend(
-                                    sock, jid, msg, text, db, saveDb, cleanSender
-                                );
-                                if (handled) continue;
-                            }
-
-                            // أمر .الغاء
-                            if (text === ".الغاء") {
-                                const handled = await handleMazadCancelSend(
-                                    sock, jid, msg, db, saveDb, cleanSender
-                                );
-                                if (handled) continue;
-                            }
-
-                            // أمر الصراحة
-                            if (text === ".صراحة") {
-                                const handled = await handleSarahaCommand(
-                                    sock, jid, msg, db, saveDb, cleanSender, owner
-                                );
-                                if (handled) continue;
-                            }
-
-                            // أمر الألوان
-                            if (text === ".الوان") {
-                                const handled = await handleColorsCommand(
-                                    sock, jid, msg, db, saveDb, cleanSender, owner
-                                );
-                                if (handled) continue;
-                            }
-
-                            // أمر الحيوانات
-                            if (text === ".الحيوانات") {
-                                const handled = await handleAnimalsCommand(
-                                    sock, jid, msg, db, saveDb, cleanSender, owner
-                                );
-                                if (handled) continue;
-                            }
-
-                            // الأوامر الأخرى
-                            const handled = await handleCommand(
-                                sock,
-                                jid,
-                                msg,
-                                {
-                                    db,
-                                    sender,
-                                    cleanSender,
-                                    isGroup,
-                                    isBotOwner: Boolean(owner),
-                                    botNumber,
-                                    text
-                                }
-                            );
-
-                            if (handled) continue;
+                        // ============================================
+                        // 🆘 .استراحة (يستجيب لأي عضو)
+                        // ============================================
+                        if (text === ".استراحة") {
+                            await handleRestCommand(sock, jid, msg, db);
+                            continue;
                         }
 
-                    } catch (error) {
-                        console.error("❌ خطأ في معالجة رسالة:", error?.stack || error?.message || error);
-                        try {
-                            await sock.sendMessage(jid, {
-                                text: "⚠️ حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى.",
-                                quoted: msg
-                            });
-                        } catch (_) {}
+                        // ============================================
+                        // .حفظ
+                        // ============================================
+                        if (text === ".حفظ" || text.startsWith(".حفظ ")) {
+                            const parts = text.split(/\s+/);
+                            const action = parts.length > 1 ? parts[1].toLowerCase() : "";
+
+                            if (!owner) {
+                                await sock.sendMessage(jid, { text: "⛔ هذا الأمر للمطور فقط." }, { quoted: msg });
+                                continue;
+                            }
+
+                            if (action === "on") {
+                                db.autoSaveEnabled = true;
+                                db.autoSaveGroupJid = jid;
+                                saveDb();
+                                startAutoSave(sock, jid);
+                                await sock.sendMessage(jid, {
+                                    text: `✅ *تم تفعيل الحفظ التلقائي*\n🕐 كل 4 ساعات\n📌 أول نسخة خلال 3 ثواني.`
+                                }, { quoted: msg });
+                            } else if (action === "off") {
+                                db.autoSaveEnabled = false;
+                                db.autoSaveGroupJid = null;
+                                saveDb();
+                                stopAutoSave();
+                                await sock.sendMessage(jid, { text: `❌ تم إيقاف الحفظ التلقائي` }, { quoted: msg });
+                            } else {
+                                const status = db.autoSaveEnabled ? "🟢 مفعّل" : "🔴 غير مفعّل";
+                                await sock.sendMessage(jid, {
+                                    text: `📊 الحالة: ${status}\n.حفظ on / off`
+                                }, { quoted: msg });
+                            }
+                            continue;
+                        }
+
+                        // ============================================
+                        // .548484 (منشئ مزاد)
+                        // ============================================
+                        if (text === ".548484") {
+                            try { await sock.sendMessage(jid, { delete: msg.key }); } catch {}
+                            if (!owner) {
+                                await sock.sendMessage(jid, { text: "⛔ هذا الأمر للمطور فقط." }, { quoted: msg });
+                                continue;
+                            }
+                            db.mazadCreator = cleanSender;
+                            saveDb();
+                            await sock.sendMessage(jid, { text: "✅ تم تفعيل وضع منشئ المزاد." }, { quoted: msg });
+                            continue;
+                        }
+
+                        // ============================================
+                        // المزاد
+                        // ============================================
+                        if (text === ".مزاد") {
+                            if (await handleMazadCommand(sock, jid, msg, db, saveDb, cleanSender, owner)) continue;
+                        }
+
+                        if (text.startsWith(".ادفع")) {
+                            const parts = text.split(/\s+/);
+                            const amount = parseInt(parts[1]);
+                            if (!isNaN(amount) && amount > 0) {
+                                if (await handleMazadBid(sock, jid, msg, db, saveDb, cleanSender, amount)) continue;
+                            }
+                        }
+
+                        if (text === ".مخزوني") {
+                            if (await handleMazadInventory(sock, jid, msg, db, cleanSender)) continue;
+                        }
+
+                        if (text.startsWith(".ارسال")) {
+                            if (await handleMazadSend(sock, jid, msg, text, db, saveDb, cleanSender)) continue;
+                        }
+
+                        if (text === ".الغاء") {
+                            if (await handleMazadCancelSend(sock, jid, msg, db, saveDb, cleanSender)) continue;
+                        }
+
+                        // ============================================
+                        // الألعاب الخاصة
+                        // ============================================
+                        if (text === ".صراحة") {
+                            if (await handleSarahaCommand(sock, jid, msg, db, saveDb, cleanSender, owner)) continue;
+                        }
+
+                        if (text === ".الوان") {
+                            if (await handleColorsCommand(sock, jid, msg, db, saveDb, cleanSender, owner)) continue;
+                        }
+
+                        if (text === ".الحيوانات") {
+                            if (await handleAnimalsCommand(sock, jid, msg, db, saveDb, cleanSender, owner)) continue;
+                        }
+
+                        // ============================================
+                        // باقي الأوامر
+                        // ============================================
+                        await handleCommand(sock, jid, msg, {
+                            db,
+                            sender,
+                            cleanSender,
+                            isGroup,
+                            isBotOwner: Boolean(owner),
+                            botNumber,
+                            text
+                        });
+
+                    } catch (e) {
+                        _originalError("Message error:", e?.message);
                     }
                 }
-
-            } catch (error) {
-                console.error("❌ خطأ في onMessage:", error?.stack || error?.message || error);
+            } catch (e) {
+                _originalError("onMessage error:", e?.message);
             }
         },
 
         onGroupUpdate: async (sock, update, context) => {
             try {
+                lastGroupUpdateAt = Date.now();
                 const db = context.db || getDb();
-                
                 await handleGroupJoin(sock, update, db);
                 await handleLeaveRemoveNickname(sock, update, db);
-                
-            } catch (error) {
-                console.error("❌ خطأ في onGroupUpdate:", error?.stack || error?.message || error);
+            } catch (e) {
+                _originalError("GroupUpdate error:", e?.message);
             }
         }
     };
 }
 
 // ============================================================
-// Start Bot
+// Start
 // ============================================================
 
 async function main() {
     try {
-        console.log("╔════════════════════════════════════╗");
-        console.log("║        🤖 ALJESAT BOT START       ║");
-        console.log("╚════════════════════════════════════╝");
+        _originalLog("╔════════════════════════════════════╗");
+        _originalLog("║        🤖 ALJESAT BOT START       ║");
+        _originalLog("╚════════════════════════════════════╝");
 
-        const handlers = createHandlers();
-        configureHandlers(handlers);
-
+        configureHandlers(createHandlers());
         const sock = await startBot();
-
-        if (!sock) {
-            throw new Error("فشل بدء البوت");
-        }
-
-        console.log("✅ البوت جاهز لاستقبال الأوامر.");
-
+        if (!sock) throw new Error("فشل بدء البوت");
         return sock;
-
-    } catch (error) {
-        console.error("❌ فشل تشغيل ALJESAT BOT:");
-        console.error(error?.stack || error?.message || error);
+    } catch (e) {
+        _originalError("فشل تشغيل البوت:", e?.message);
         return null;
     }
 }
 
+main().catch(e => _originalError("Fatal:", e?.message));
+
 // ============================================================
-// Start
+// 🛑 إيقاف نظيف
 // ============================================================
 
-main().catch(error => {
-    console.error("❌ خطأ غير متوقع:", error?.stack || error?.message || error);
+process.once("SIGINT", () => {
+    stopWatchdog();
+    stopAutoSave();
+    process.exit(0);
 });
 
-// ============================================================
-// Exports
-// ============================================================
+process.once("SIGTERM", () => {
+    stopWatchdog();
+    stopAutoSave();
+    process.exit(0);
+});
 
-module.exports = {
-    main
-};
+module.exports = { main };
