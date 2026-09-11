@@ -277,17 +277,20 @@ async function startColorsGame(sock, jid, msg, cleanSender, sender, db, saveDb, 
 👑◈════════════◈👑`;
                     await sock.sendMessage(jid, { text: depositMsg, mentions: [userSender] });
 
-                    // إعلانات
+                    // ⭐ إعلان باللقب
+                    const winnerUser = db.users?.[winnerCleanNum];
+                    const winnerNickname = (winnerUser && String(winnerUser.nickname || "").trim()) || winnerCleanNum;
+
                     const adMessage = `_*█ إنــتــهــت █*_
 
 ◇🎮 نـــــــوع الفعالية:
 *{الألوان}*
 
-◇🪎 آلَــــجَــــآئـزة:
+◇🪎 آلَــــجَــــآئـزَة:
 *{ ${prizeAmount}$ }*
 
 ◇🎖️ آلَفــــــآئــز:
-${winnerTag}
+*${winnerNickname}*
 
 ◇⏰ بّـــــــدأت:
 *{${startTimeFormatted}}*
@@ -298,7 +301,7 @@ ${winnerTag}
                     if (db.adsGroups) {
                         for (const adJid of Object.keys(db.adsGroups)) {
                             if (db.adsGroups[adJid]) {
-                                await sock.sendMessage(adJid, { text: adMessage, mentions: [userSender] }).catch(() => {});
+                                await sock.sendMessage(adJid, { text: adMessage }).catch(() => {});
                             }
                         }
                     }
@@ -496,7 +499,6 @@ async function handleGameCommand(
 
         noAnswerSeconds = 0;
 
-        // تفكيك
         if (command === "تفكيك") {
             if (!Array.isArray(wordsList) || wordsList.length === 0) {
                 throw new Error("wordsList فارغة أو غير موجودة.");
@@ -518,7 +520,6 @@ async function handleGameCommand(
             };
         }
 
-        // كتابة
         else if (command === "كتابة") {
             if (!Array.isArray(writingList) || writingList.length === 0) {
                 throw new Error("writingList فارغة أو غير موجودة.");
@@ -538,7 +539,6 @@ _*الشرح:*_
             };
         }
 
-        // اعلام
         else if (command === "اعلام") {
             if (!Array.isArray(flagsList) || flagsList.length === 0) {
                 throw new Error("flagsList فارغة أو غير موجودة.");
@@ -553,7 +553,6 @@ _*الشرح:*_
             };
         }
 
-        // ايموجي
         else if (command === "ايموجي") {
             if (!Array.isArray(emojisList) || emojisList.length === 0) {
                 throw new Error("emojisList فارغة أو غير موجودة.");
@@ -705,20 +704,20 @@ _*الشرح:*_
                         mentions: [userSender]
                     });
 
-                    // =============================================
-                    // إعلان في مجموعات الإعلانات
-                    // =============================================
+                    // ⭐ إعلان باللقب
+                    const winnerUser = db.users?.[winnerCleanNum];
+                    const winnerNickname = (winnerUser && String(winnerUser.nickname || "").trim()) || winnerCleanNum;
 
                     const adMessage = `_*█ إنــتــهــت █*_
 
 ◇🎮 نـــــــوع الفعالية:
 *{${command}}*
 
-◇🪎 آلَــــجَــــآئـزة:
+◇🪎 آلَــــجَــــآئـزَة:
 *{ ${prizeAmount}$ }*
 
 ◇🎖️ آلَفــــــآئــز:
-${winnerTag}
+*${winnerNickname}*
 
 ◇⏰ بّـــــــدأت:
 *{${startTimeFormatted}}*
@@ -731,8 +730,7 @@ ${winnerTag}
                             if (!db.adsGroups[adJid]) continue;
                             try {
                                 await sock.sendMessage(adJid, {
-                                    text: adMessage,
-                                    mentions: [userSender]
+                                    text: adMessage
                                 });
                             } catch (_) {}
                         }
