@@ -195,6 +195,47 @@ function shouldIgnoreMessage(msg) {
 }
 
 // ============================================================
+// 👑 التحقق من صلاحية الأدمن/المشرف
+// ============================================================
+
+async function isGroupAdmin(sock, jid, senderJid) {
+    try {
+        const metadata = await sock.groupMetadata(jid);
+        if (!metadata || !Array.isArray(metadata.participants)) return false;
+
+        // مطابقة دقيقة للـ JID (participant.id)
+        const senderClean = cleanNumber(senderJid);
+        const participant = metadata.participants.find(p => {
+            const pClean = cleanNumber(p.id);
+            return pClean === senderClean;
+        });
+
+        if (!participant) return false;
+
+        return participant.admin === "admin" || participant.admin === "superadmin";
+    } catch (e) {
+        _originalError("isGroupAdmin error:", e?.message);
+        return false;
+    }
+}
+
+// جلب كل المشرفين في المجموعة (لمنشنهم في التنبيه)
+async function getGroupAdmins(sock, jid) {
+    try {
+        const metadata = await sock.groupMetadata(jid);
+        if (!metadata || !Array.isArray(metadata.participants)) return [];
+
+        return metadata.participants
+            .filter(p => p.admin === "admin" || p.admin === "superadmin")
+            .map(p => p.id)
+            .filter(Boolean);
+    } catch (e) {
+        _originalError("getGroupAdmins error:", e?.message);
+        return [];
+    }
+}
+
+// ============================================================
 // Admin Monitoring
 // ============================================================
 
@@ -509,7 +550,7 @@ function forceStopAllGames() {
 }
 
 // ============================================================
-// 🆘 نظام الاستراحة التفاعلي
+// 🆘 نظام الاستراحة التفاعلي (للأدمن فقط)
 // ============================================================
 
 const restRequests = Object.create(null); // { jid: { timeout, sentAt } }
@@ -518,13 +559,27 @@ async function requestRestInGroup(sock, jid, reason = "ضغط هائل") {
     if (restRequests[jid]) return false;
 
     try {
+        // جلب المشرفين لمنشنهم
+        const adminJids = await getGroupAdmins(sock, jid);
+        const adminMentions = adminJids.length > 0 ? adminJids : [];
+
+        // بناء قائمة المنشن
+        let adminsLine = "";
+        if (adminMentions.length > 0) {
+            adminsLine = "\n\n📢 تنبيه للمشرفين:\n" +
+                adminMentions.map(j => `@${cleanNumber(j)}`).join(" ");
+        }
+
         await sock.sendMessage(jid, {
             text: `◆━─━─━─⊱☢️⊰─━─━─━◆
 ملاحظة هناك ${reason} على
  البوت يرجى ارسال امر: 
 *.استراحة*
 للحفاظ على عدم تعليق البوت
-◆━─━─━─⊱🛑⊰─━─━─━◆`
+
+⚠️ الأمر متاح للمشرفين فقط
+◆━─━─━─⊱🛑⊰─━─━─━◆${adminsLine}`,
+            mentions: adminMentions
         });
 
         const timeoutId = setTimeout(async () => {
@@ -532,8 +587,15 @@ async function requestRestInGroup(sock, jid, reason = "ضغط هائل") {
             for (const entry of stuck) stopSingleGame(entry);
 
             if (stuck.length > 0) {
+                // نرسل النتيجة مع منشن المشرفين
+                const admins = await getGroupAdmins(sock, jid);
+                const adminsLine2 = admins.length > 0
+                    ? "\n\n📢 تنبيه للمشرفين:\n" + admins.map(j => `@${cleanNumber(j)}`).join(" ")
+                    : "";
+
                 await sock.sendMessage(jid, {
-                    text: `⏰ انتهت المهلة دون استجابة.\n🛑 تم إيقاف ${stuck.length} فعالية عالقة تلقائياً للحفاظ على البوت.`
+                    text: `⏰ انتهت المهلة دون استجابة.\n🛑 تم إيقاف ${stuck.length} فعالية عالقة تلقائياً للحفاظ على البوت.${adminsLine2}`,
+                    mentions: admins
                 }).catch(() => {});
             }
 
@@ -548,7 +610,26 @@ async function requestRestInGroup(sock, jid, reason = "ضغط هائل") {
     }
 }
 
-async function handleRestCommand(sock, jid, msg, db) {
+// ============================================================
+// 🆘 أمر .استراحة — للمشرفين أو المطور فقط
+// ============================================================
+
+async function handleRestCommand(sock, jid, msg, db, senderJid, cleanSender, isOwnerUser) {
+    // التحقق من الصلاحية: إما مطور أو مشرف في المجموعة
+    let allowed = Boolean(isOwnerUser);
+
+    if (!allowed) {
+        allowed = await isGroupAdmin(sock, jid, senderJid);
+    }
+
+    if (!allowed) {
+        await sock.sendMessage(jid, {
+            text: "⛔ أمر .استراحة متاح للمشرفين فقط."
+        }, { quoted: msg }).catch(() => {});
+        return true;
+    }
+
+    // إلغاء الطلب المعلق (لو موجود)
     if (restRequests[jid]) {
         clearTimeout(restRequests[jid].timeout);
         delete restRequests[jid];
@@ -558,6 +639,7 @@ async function handleRestCommand(sock, jid, msg, db) {
     let stoppedCount = 0;
 
     if (stuck.length === 0) {
+        // لا يوجد عالق → أوقف كل الفعاليات في القروب (قرار المشرف)
         try {
             if (activeGames[jid]) { activeGames[jid]?.stopGame?.(); delete activeGames[jid]; stoppedCount++; }
             if (activeColors[jid]) { activeColors[jid]?.stopGame?.(); delete activeColors[jid]; stoppedCount++; }
@@ -576,9 +658,11 @@ async function handleRestCommand(sock, jid, msg, db) {
         await sock.sendMessage(jid, {
             text: `◆━─━─━─⊱✅⊰─━─━─━◆
 تم الاستجابة لطلب الاستراحة
+👑 بواسطة: @${cleanSender}
 🛑 عدد الفعاليات المتوقفة: \`${stoppedCount}\`
 شكراً لتعاونكم ❤️
-◆━─━─━─⊱🛑⊰─━─━─━◆`
+◆━─━─━─⊱🛑⊰─━─━─━◆`,
+            mentions: [senderJid]
         }, { quoted: msg });
     } catch {}
 
@@ -710,10 +794,10 @@ function createHandlers() {
                         }
 
                         // ============================================
-                        // 🆘 .استراحة (يستجيب لأي عضو)
+                        // 🆘 .استراحة (للمشرفين/المطور فقط)
                         // ============================================
                         if (text === ".استراحة") {
-                            await handleRestCommand(sock, jid, msg, db);
+                            await handleRestCommand(sock, jid, msg, db, sender, cleanSender, owner);
                             continue;
                         }
 
