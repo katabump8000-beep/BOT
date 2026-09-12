@@ -648,13 +648,42 @@ function createHandlers() {
                         const owner = isOwner(cleanSender, sock, msg);
 
                         // ============================================
-                        // 🎮 معالجة اختيار الفعالية
+                        // 🎮 معالجة اختيار الفعالية من List Message
                         // ============================================
                         const listResponse = msg.message?.listResponseMessage;
                         if (listResponse) {
-                            const selectedRowId = listResponse.singleSelectReply?.selectedRowId;
+                            const selectedRowId = String(listResponse.singleSelectReply?.selectedRowId || "");
 
-                            if (selectedRowId && selectedRowId.startsWith("game_")) {
+                            // البحث عن الكلمة المفتاحية داخل الـ rowId
+                            let matchedCmd = null;
+                            const gameKeywords = [
+                                { keyword: "تفكيك", cmd: "تفكيك" },
+                                { keyword: "كتابة", cmd: "كتابة" },
+                                { keyword: "ألوان", cmd: "الوان" },
+                                { keyword: "الوان", cmd: "الوان" },
+                                { keyword: "صراحة", cmd: "صراحة" },
+                                { keyword: "الحيوانات", cmd: "الحيوانات" },
+                                { keyword: "حيوانات", cmd: "الحيوانات" },
+                                { keyword: "أعلام", cmd: "اعلام" },
+                                { keyword: "اعلام", cmd: "اعلام" },
+                                { keyword: "إيموجي", cmd: "ايموجي" },
+                                { keyword: "ايموجي", cmd: "ايموجي" },
+                                { keyword: "روليت", cmd: "روليت" },
+                                { keyword: "كريستال", cmd: "كريستال" }
+                            ];
+
+                            for (const item of gameKeywords) {
+                                if (selectedRowId.includes(item.keyword)) {
+                                    matchedCmd = item.cmd;
+                                    break;
+                                }
+                            }
+
+                            if (!matchedCmd && selectedRowId.startsWith("game_")) {
+                                matchedCmd = selectedRowId.replace("game_", "");
+                            }
+
+                            if (matchedCmd) {
                                 const pending = global.pendingGamesMenu && global.pendingGamesMenu[jid];
 
                                 if (!pending || pending.sender !== cleanSender) {
@@ -673,14 +702,14 @@ function createHandlers() {
                                 }
 
                                 delete global.pendingGamesMenu[jid];
-                                const cmd = selectedRowId.replace("game_", "");
+                                const cmd = matchedCmd;
 
-                                // ⭐ حذف رسالة الاختيار
+                                // حذف رسالة القائمة
                                 try {
                                     await sock.sendMessage(jid, { delete: msg.key });
                                 } catch (_) {}
 
-                                // ⭐ حالة كريستال
+                                // حالة كريستال
                                 if (cmd === "كريستال") {
                                     await sock.sendMessage(jid, {
                                         text: "*❉▬▬▬▬🎰▬▬▬▬❉*\n رجاءا اكتب امر: \n*كريستال 00*\nضع عدد الرهان بدلا من 00\nمثال:  `.كريستال 50`\n*✥▬▬▬▬🎰▬▬▬▬✥*"
@@ -688,7 +717,7 @@ function createHandlers() {
                                     continue;
                                 }
 
-                                // ⭐ تنفيذ الأمر تلقائياً
+                                // تنفيذ الأمر تلقائياً
                                 const fakeText = "." + cmd;
                                 try {
                                     const fakeMsg = {
