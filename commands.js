@@ -174,7 +174,7 @@ async function handleEmergencyStop(sock, jid, msg, owner) {
 }
 
 // ============================================================
-// 🎮 .العاب - List Message (Sections/Rows/buttonText)
+// 🎮 .العاب - List Message باستخدام qadeer-btns
 // ============================================================
 async function handleGamesList(sock, jid, msg, senderNumber) {
     pendingGamesMenu[jid] = { sender: senderNumber, timestamp: Date.now() };
@@ -182,35 +182,75 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
         if (pendingGamesMenu[jid] && pendingGamesMenu[jid].sender === senderNumber) delete pendingGamesMenu[jid];
     }, 5 * 60 * 1000);
 
-    const listMessage = {
-        text: "❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆\n     `رجاءاً قم بتحديد الفعالية:`\n❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆",
-        footer: "Aljesat Bot",
-        buttonText: "👈 تحديد 👉",
-        sections: [
-            {
-                title: "🎮 الفعاليات المتاحة",
-                rows: [
-                    { title: "تفكيك 🧩", rowId: "game_تفكيك", description: "لعبة تفكيك الكلمات" },
-                    { title: "كتابة ✍️", rowId: "game_كتابة", description: "لعبة كتابة الكلمة" },
-                    { title: "الوان 🎨", rowId: "game_الوان", description: "لعبة الألوان" },
-                    { title: "صراحة 🫣", rowId: "game_صراحة", description: "لعبة الصراحة" },
-                    { title: "الحيوانات 🦊", rowId: "game_الحيوانات", description: "لعبة الحيوانات" },
-                    { title: "اعلام 🚩", rowId: "game_اعلام", description: "لعبة الأعلام" },
-                    { title: "ايموجي 😀", rowId: "game_ايموجي", description: "لعبة الإيموجي" },
-                    { title: "روليت 🎰", rowId: "game_روليت", description: "لعبة الروليت" },
-                    { title: "كريستال 💎", rowId: "game_كريستال", description: "لعبة الكريستال" }
-                ]
-            }
-        ]
-    };
+    const headerText = "❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆\n     `رجاءاً قم بتحديد الفعالية:`\n❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆";
 
+    // محاولة 1: qadeer-btns
     try {
-        await sock.sendMessage(jid, listMessage, { quoted: msg });
-    } catch (e) {
-        console.error("❌ List Message failed:", e?.message);
-        const fallback = "❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆\n     `رجاءاً قم بتحديد الفعالية:`\n❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆\n\n🧩 .تفكيك\n✍️ .كتابة\n🎨 .الوان\n🫣 .صراحة\n🦊 .الحيوانات\n🚩 .اعلام\n😀 .ايموجي\n🎰 .روليت\n🎰 .كريستال";
-        await sendText(sock, jid, fallback, msg);
+        const { sendInteractiveMessage } = require("@qadeerxtech/qadeer-btns");
+        await sendInteractiveMessage(sock, jid, {
+            text: headerText,
+            footer: "Aljesat Bot",
+            interactiveButtons: [
+                {
+                    name: "single_select",
+                    buttonParamsJson: JSON.stringify({
+                        title: "👈 تحديد 👉",
+                        sections: [
+                            {
+                                title: "🎮 الفعاليات المتاحة",
+                                rows: [
+                                    { id: "game_تفكيك", title: "تفكيك 🧩", description: "لعبة تفكيك الكلمات" },
+                                    { id: "game_كتابة", title: "كتابة ✍️", description: "لعبة كتابة الكلمة" },
+                                    { id: "game_الوان", title: "الوان 🎨", description: "لعبة الألوان" },
+                                    { id: "game_صراحة", title: "صراحة 🫣", description: "لعبة الصراحة" },
+                                    { id: "game_الحيوانات", title: "الحيوانات 🦊", description: "لعبة الحيوانات" },
+                                    { id: "game_اعلام", title: "اعلام 🚩", description: "لعبة الأعلام" },
+                                    { id: "game_ايموجي", title: "ايموجي 😀", description: "لعبة الإيموجي" },
+                                    { id: "game_روليت", title: "روليت 🎰", description: "لعبة الروليت" },
+                                    { id: "game_كريستال", title: "كريستال 💎", description: "لعبة الكريستال" }
+                                ]
+                            }
+                        ]
+                    })
+                }
+            ]
+        });
+        return true;
+    } catch (e1) {
+        console.error("❌ qadeer-btns failed:", e1?.message);
     }
+
+    // محاولة 2: List Message العادي
+    try {
+        await sock.sendMessage(jid, {
+            text: headerText,
+            footer: "Aljesat Bot",
+            buttonText: "👈 تحديد 👉",
+            sections: [
+                {
+                    title: "🎮 الفعاليات المتاحة",
+                    rows: [
+                        { title: "تفكيك 🧩", rowId: "game_تفكيك", description: "لعبة تفكيك" },
+                        { title: "كتابة ✍️", rowId: "game_كتابة", description: "لعبة كتابة" },
+                        { title: "الوان 🎨", rowId: "game_الوان", description: "لعبة الألوان" },
+                        { title: "صراحة 🫣", rowId: "game_صراحة", description: "لعبة الصراحة" },
+                        { title: "الحيوانات 🦊", rowId: "game_الحيوانات", description: "لعبة الحيوانات" },
+                        { title: "اعلام 🚩", rowId: "game_اعلام", description: "لعبة الأعلام" },
+                        { title: "ايموجي 😀", rowId: "game_ايموجي", description: "لعبة الإيموجي" },
+                        { title: "روليت 🎰", rowId: "game_روليت", description: "لعبة الروليت" },
+                        { title: "كريستال 💎", rowId: "game_كريستال", description: "لعبة الكريستال" }
+                    ]
+                }
+            ]
+        }, { quoted: msg });
+        return true;
+    } catch (e2) {
+        console.error("❌ List Message failed:", e2?.message);
+    }
+
+    // محاولة 3: Fallback نصي
+    const fallback = headerText + "\n\n🧩 .تفكيك\n✍️ .كتابة\n🎨 .الوان\n🫣 .صراحة\n🦊 .الحيوانات\n🚩 .اعلام\n😀 .ايموجي\n🎰 .روليت\n🎰 .كريستال";
+    await sendText(sock, jid, fallback, msg);
 
     return true;
 }
