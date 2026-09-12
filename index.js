@@ -6,10 +6,6 @@
 
 "use strict";
 
-// ============================================================
-// 🛡️ حماية من طوفان السجلات (Railway 500 logs/sec)
-// ============================================================
-
 const fs = require("fs");
 const path = require("path");
 
@@ -108,7 +104,7 @@ const MAX_IDLE_CHECKS = 15;
 const MAX_GAME_COUNT = 8;
 
 // ============================================================
-// 🎮 قائمة انتظار اختيار الفعالية من List Message
+// 🎮 قائمة انتظار اختيار الفعالية
 // ============================================================
 
 const pendingGamesMenu = Object.create(null);
@@ -661,7 +657,6 @@ function createHandlers() {
                             if (selectedRowId && selectedRowId.startsWith("game_")) {
                                 const pending = global.pendingGamesMenu && global.pendingGamesMenu[jid];
 
-                                // فقط صاحب الأمر .العاب
                                 if (!pending || pending.sender !== cleanSender) {
                                     await sock.sendMessage(jid, {
                                         text: "⚠️ هذه القائمة خاصة بصاحب الأمر `.العاب` فقط."
@@ -669,7 +664,6 @@ function createHandlers() {
                                     continue;
                                 }
 
-                                // انتهت صلاحية القائمة
                                 if (Date.now() - pending.timestamp > 5 * 60 * 1000) {
                                     delete global.pendingGamesMenu[jid];
                                     await sock.sendMessage(jid, {
@@ -681,7 +675,6 @@ function createHandlers() {
                                 delete global.pendingGamesMenu[jid];
                                 const cmd = selectedRowId.replace("game_", "");
 
-                                // ⭐ كريستال: اطلب مبلغ الرهان
                                 if (cmd === "كريستال") {
                                     await sock.sendMessage(jid, {
                                         text: `*❉▬▬▬▬🎰▬▬▬▬❉*
@@ -693,7 +686,6 @@ function createHandlers() {
                                     continue;
                                 }
 
-                                // ⭐ تنفيذ الفعالية تلقائياً
                                 const fakeText = "." + cmd;
                                 try {
                                     const fakeMsg = {
@@ -719,19 +711,16 @@ function createHandlers() {
                         const text = getMessageTextFromMsg(msg);
                         if (!text) continue;
 
-                        // رسالة عادية → ردود تلقائية
                         if (!text.startsWith(".")) {
                             await handleAutoReplies(sock, jid, msg, text, sender, cleanSender, db, saveDb);
                             continue;
                         }
 
-                        // 🆘 .استراحة
                         if (text === ".استراحة") {
                             await handleRestCommand(sock, jid, msg, db);
                             continue;
                         }
 
-                        // .حفظ
                         if (text === ".حفظ" || text.startsWith(".حفظ ")) {
                             const parts = text.split(/\s+/);
                             const action = parts.length > 1 ? parts[1].toLowerCase() : "";
@@ -764,7 +753,6 @@ function createHandlers() {
                             continue;
                         }
 
-                        // .548484
                         if (text === ".548484") {
                             try { await sock.sendMessage(jid, { delete: msg.key }); } catch {}
                             if (!owner) {
@@ -777,7 +765,6 @@ function createHandlers() {
                             continue;
                         }
 
-                        // المزاد
                         if (text === ".مزاد") {
                             if (await handleMazadCommand(sock, jid, msg, db, saveDb, cleanSender, owner)) continue;
                         }
@@ -802,7 +789,6 @@ function createHandlers() {
                             if (await handleMazadCancelSend(sock, jid, msg, db, saveDb, cleanSender)) continue;
                         }
 
-                        // الألعاب الخاصة
                         if (text === ".صراحة") {
                             if (await handleSarahaCommand(sock, jid, msg, db, saveDb, cleanSender, owner)) continue;
                         }
@@ -815,7 +801,6 @@ function createHandlers() {
                             if (await handleAnimalsCommand(sock, jid, msg, db, saveDb, cleanSender, owner)) continue;
                         }
 
-                        // باقي الأوامر
                         await handleCommand(sock, jid, msg, {
                             db,
                             sender,
