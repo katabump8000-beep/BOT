@@ -29,6 +29,33 @@ const {
 let globalGameBlockUntil = 0;
 const pendingGamesMenu = global.pendingGamesMenu || (global.pendingGamesMenu = Object.create(null));
 
+// ============================================================
+// 🎮 تحويل النصوص الكاملة إلى أوامر فعاليات
+// ============================================================
+function normalizeGameCommand(text) {
+    if (!text) return null;
+
+    const cleanText = String(text).trim();
+
+    const gameMap = [
+        { pattern: /روليت/, cmd: "روليت" },
+        { pattern: /إيمـــ?😀ــوجي|ايمـــ?😀ــوجي|إيموجي|ايموجي/, cmd: "ايموجي" },
+        { pattern: /أعـــ?🚩ــلام|اعـــ?🚩ــلام|أعلام|اعلام/, cmd: "اعلام" },
+        { pattern: /صــ?🫣ــراحة|صراحة/, cmd: "صراحة" },
+        { pattern: /تفكـ?🧩ـــ?يك|تفكيك/, cmd: "تفكيك" },
+        { pattern: /الـ?حـ?🦊ـ?يوانات|الحيوانات/, cmd: "الحيوانات" },
+        { pattern: /ألـــ?🎨ـــ?وان|الوان/, cmd: "الوان" },
+        { pattern: /كــ?تــ?✍️ــ?ابـ?ة|كتابة/, cmd: "كتابة" },
+        { pattern: /كريستال/, cmd: "كريستال" }
+    ];
+
+    for (const item of gameMap) {
+        if (item.pattern.test(cleanText)) return item.cmd;
+    }
+
+    return null;
+}
+
 function getMessageText(msg) {
     const m = msg?.message;
     if (!m) return "";
@@ -174,7 +201,7 @@ async function handleEmergencyStop(sock, jid, msg, owner) {
 }
 
 // ============================================================
-// 🎮 .العاب - List Message بالزخرفة الجديدة
+// 🎮 .العاب - List Message بالنصوص الكاملة
 // ============================================================
 async function handleGamesList(sock, jid, msg, senderNumber) {
     pendingGamesMenu[jid] = { sender: senderNumber, timestamp: Date.now() };
@@ -185,15 +212,15 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
     const headerText = "_*❆━━═⏣⊰🎮⊱⏣═━━❆*_\n  `رجاءاً قم بتحديد الفعالية:`\n_*❆━━═⏣⊰🎰⊱⏣═━━❆*_";
 
     const rows = [
-        { id: "game_تفكيك", title: "⏣⊰ تفكـ🧩ـــيك ⊱⏣", description: "لعبة تفكيك الكلمات" },
-        { id: "game_كتابة", title: "⏣⊰ كــتــ✍️ــابـة ⊱⏣", description: "لعبة كتابة الكلمة" },
-        { id: "game_الوان", title: "⏣⊰ ألــــ🎨ـــوان ⊱⏣", description: "لعبة الألوان" },
-        { id: "game_صراحة", title: "⏣⊰ صــ🫣ــراحة ⊱⏣", description: "لعبة الصراحة" },
-        { id: "game_الحيوانات", title: "⏣⊰ الـحـ🦊ـيوانات ⊱⏣", description: "لعبة الحيوانات" },
-        { id: "game_اعلام", title: "⏣⊰ أعـــ🚩ــلام ⊱⏣", description: "لعبة الأعلام" },
-        { id: "game_ايموجي", title: "⏣⊰ إيمـــ😀ــوجي ⊱⏣", description: "لعبة الإيموجي" },
-        { id: "game_روليت", title: "❆━═🎲 روليت 🎰═━❆", description: "لعبة الروليت" },
-        { id: "game_كريستال", title: "❆━═🎲 كريستال 🎰═━❆", description: "لعبة الكريستال" }
+        { id: "⏣⊰ تفكـ🧩ـــيك ⊱⏣\nلعبة تفكيك الكلمات", title: "⏣⊰ تفكـ🧩ـــيك ⊱⏣", description: "لعبة تفكيك الكلمات" },
+        { id: "⏣⊰ كــتــ✍️ــابـة ⊱⏣\nلعبة كتابة الكلمة", title: "⏣⊰ كــتــ✍️ــابـة ⊱⏣", description: "لعبة كتابة الكلمة" },
+        { id: "⏣⊰ ألــــ🎨ـــوان ⊱⏣\nلعبة الألوان", title: "⏣⊰ ألــــ🎨ـــوان ⊱⏣", description: "لعبة الألوان" },
+        { id: "⏣⊰ صــ🫣ــراحة ⊱⏣\nلعبة الصراحة", title: "⏣⊰ صــ🫣ــراحة ⊱⏣", description: "لعبة الصراحة" },
+        { id: "⏣⊰ الـحـ🦊ـيوانات ⊱⏣\nلعبة الحيوانات", title: "⏣⊰ الـحـ🦊ـيوانات ⊱⏣", description: "لعبة الحيوانات" },
+        { id: "⏣⊰ أعـــ🚩ــلام ⊱⏣\nلعبة الأعلام", title: "⏣⊰ أعـــ🚩ــلام ⊱⏣", description: "لعبة الأعلام" },
+        { id: "⏣⊰ إيمـــ😀ــوجي ⊱⏣\nلعبة الإيموجي", title: "⏣⊰ إيمـــ😀ــوجي ⊱⏣", description: "لعبة الإيموجي" },
+        { id: "❆━═🎲 روليت 🎰═━❆\nلعبة الروليت", title: "❆━═🎲 روليت 🎰═━❆", description: "لعبة الروليت" },
+        { id: "❆━═🎲 كريستال 🎰═━❆\nلعبة الكريستال", title: "❆━═🎲 كريستال 🎰═━❆", description: "لعبة الكريستال" }
     ];
 
     try {
@@ -691,9 +718,26 @@ async function handleOrganize(sock, jid, msg, parts, senderNumber, owner, db, sa
 async function handleCommand(sock, jid, msg, context = {}) {
     const db = context.db || getDb();
     const text = context.text || getMessageText(msg);
-    const normalizedCommand = getNormalizedCommand(text);
-    let finalText = text;
-    if (normalizedCommand && normalizedCommand !== text) finalText = normalizedCommand;
+
+    // ⭐ تحويل النصوص الكاملة إلى أوامر فعاليات
+    let effectiveText = text;
+    const gameCmd = normalizeGameCommand(text);
+
+    if (gameCmd) {
+        if (!text.startsWith(".")) {
+            effectiveText = "." + gameCmd;
+        } else {
+            const withoutDot = text.slice(1).trim();
+            const innerCmd = normalizeGameCommand(withoutDot);
+            if (innerCmd && innerCmd !== withoutDot) {
+                effectiveText = "." + innerCmd;
+            }
+        }
+    }
+
+    const normalizedCommand = getNormalizedCommand(effectiveText);
+    let finalText = effectiveText;
+    if (normalizedCommand && normalizedCommand !== effectiveText) finalText = normalizedCommand;
     const parsed = getCommand(finalText);
     if (!parsed) return false;
 
@@ -805,5 +849,6 @@ module.exports = {
     findUserByNickname,
     findUserByNicknameForFriend,
     isSimilarNickname,
-    getNormalizedCommand
+    getNormalizedCommand,
+    normalizeGameCommand
 };
