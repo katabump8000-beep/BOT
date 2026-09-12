@@ -7,16 +7,8 @@
 
 const { messages } = require("./data");
 
-// ============================================================
-// حالة مراقبة الإشراف
-// ============================================================
-
 let adminMonitorInterval = null;
 let isMonitoringActive = false;
-
-// ============================================================
-// أدوات مساعدة
-// ============================================================
 
 function cleanNumber(value) {
     if (!value) return "";
@@ -80,10 +72,6 @@ function hasPermission(db, user, type) {
     return permissions[type]?.includes(cleanNumber(user)) || false;
 }
 
-// ============================================================
-// الحصول على أرقام المشرفين الحاليين
-// ============================================================
-
 function getCurrentAdmins(participants) {
     return participants
         .filter(isAdmin)
@@ -93,10 +81,6 @@ function getCurrentAdmins(participants) {
         })
         .filter(Boolean);
 }
-
-// ============================================================
-// الحصول على منفذ العملية من الحدث
-// ============================================================
 
 function getActorFromUpdate(update) {
     try {
@@ -113,10 +97,6 @@ function getActorFromUpdate(update) {
         return null;
     }
 }
-
-// ============================================================
-// مراقبة الإشراف - نظام الحماية الفوري
-// ============================================================
 
 function startAdminMonitoring(sock, db, saveDb) {
     stopAdminMonitoring();
@@ -192,34 +172,19 @@ function startAdminMonitoring(sock, db, saveDb) {
                 await sock.groupParticipantsUpdate(id, [actorJid], "demote");
                 await sock.groupParticipantsUpdate(id, [lostAdminJid], "promote");
 
-                const adminMentions = currentAdmins.map(
-                    (number) => `${cleanNumber(number)}@s.whatsapp.net`
-                );
+                const warningMsg = `⚠️━━━━━═⏣⊰ *تحذير* ⊱⏣═━━━━━⚠️
+العضو @${cleanNumber(actor)} لم يسمح لك ان
+ تسحب اشراف احد الرتب العالية ♨️ ⛔
+تم سحب اشرافك 🛑
 
-                const warningMsg = `⚠️⛔━━━━━━━━━━━━━━━━⛔⚠️
-🚨 تـنـبـيـه هـام 🚨
-⚠️⛔━━━━━━━━━━━━━━━━⛔⚠️
-
-❌ تم رصد محاولة سحب إشراف العضو المحمي:
-
-👤 المخالف: @${cleanNumber(actor)}
-
-🛡️ العضو المحمي:
-@${cleanNumber(lostAdmin)}
-
-🚫 ممنوع سحب الإشراف من هذا الرقم.
-تمت إعادة الإشراف إليه تلقائياً.
-
-⚠️ تم اتخاذ الإجراء بحق المخالف.
-
-📢 تنبيه جميع مشرفي المجموعة:
-${adminMentions.map(m => `@${cleanNumber(m)}`).join(' ')}
-
-⚠️⛔━━━━━━━━━━━━━━━━⛔⚠️`;
+الادمن:  @${cleanNumber(lostAdmin)}
+تم استرجاع اشرافك ✅
+يرجى مراجعة امر العضو الذي سحب الاشراف
+📛❆━━━━━═⏣⊰ *تنبيه* ⊱⏣═━━━━━📛`;
 
                 await sock.sendMessage(id, {
                     text: warningMsg,
-                    mentions: [...adminMentions, actorJid, lostAdminJid]
+                    mentions: [actorJid, lostAdminJid]
                 });
 
                 console.log(
@@ -248,10 +213,6 @@ ${adminMentions.map(m => `@${cleanNumber(m)}`).join(' ')}
     return groupUpdateHandler;
 }
 
-// ============================================================
-// إيقاف مراقبة الإدارة
-// ============================================================
-
 function stopAdminMonitoring() {
     isMonitoringActive = false;
 
@@ -262,10 +223,6 @@ function stopAdminMonitoring() {
 
     console.log("🛑 تم إيقاف مراقبة الإشراف");
 }
-
-// ============================================================
-// معالجة أوامر الإدارة
-// ============================================================
 
 async function handleAdminCommand(
     sock,
@@ -298,7 +255,7 @@ async function handleAdminCommand(
     };
 
     // ========================================================
-    // .سماح
+    // .سماح [1/2/3/4/5]
     // ========================================================
 
     if (command === "سماح") {
@@ -310,11 +267,11 @@ async function handleAdminCommand(
         const permissionType = String(parts?.[0] || "");
         const mentioned = getMentionedJid(msg);
 
-        if (!["1", "2", "3", "4"].includes(permissionType) || !mentioned) {
+        if (!["1", "2", "3", "4", "5"].includes(permissionType) || !mentioned) {
             await send(
                 sock,
                 jid,
-                messages.admin.invalidUsage(".سماح", "[1/2/3/4] @user"),
+                messages.admin.invalidUsage(".سماح", "[1/2/3/4/5] @user"),
                 msg
             );
             return true;
@@ -322,6 +279,33 @@ async function handleAdminCommand(
 
         const target = cleanNumber(mentioned);
         const permissions = ensurePermissions(db);
+
+        // ⭐ المستوى 5 = كل الصلاحيات
+        if (permissionType === "5") {
+            for (const level of ["1", "2", "3", "4"]) {
+                if (!permissions[level].includes(target)) {
+                    permissions[level].push(target);
+                }
+            }
+            db.gamePermissions = Array.isArray(db.gamePermissions) ? db.gamePermissions : [];
+            if (!db.gamePermissions.includes(target)) {
+                db.gamePermissions.push(target);
+            }
+            if (typeof saveDb === "function") saveDb();
+
+            await send(
+                sock,
+                jid,
+                `👑◈══════════════◈👑
+✅ تم منح العضو @${target}
+ *جميع الصلاحيات* (كل أوامر البوت)
+ من رصيد، سجل، رتبته، تفاعله، فعاليات، كازينو، مزاد... إلخ
+👑◈══════════════◈👑`,
+                msg,
+                { mentions: [mentioned] }
+            );
+            return true;
+        }
 
         if (!permissions[permissionType].includes(target)) {
             permissions[permissionType].push(target);
@@ -347,7 +331,7 @@ async function handleAdminCommand(
     }
 
     // ========================================================
-    // .صلاحيات - فقط لرقم البوت
+    // .صلاحيات
     // ========================================================
 
     if (command === "صلاحيات") {
@@ -384,7 +368,7 @@ async function handleAdminCommand(
     }
 
     // ========================================================
-    // .بوت - مراقبة إشراف عضو
+    // .بوت
     // ========================================================
 
     if (command === "بوت") {
@@ -410,7 +394,6 @@ async function handleAdminCommand(
 
         const target = cleanNumber(mentioned);
 
-        // التحقق من أن البوت مشرف
         let isBotAdmin = false;
         try {
             const metadata = await sock.groupMetadata(jid);
@@ -428,7 +411,6 @@ async function handleAdminCommand(
             console.error("❌ خطأ في التحقق من صلاحية البوت:", error?.message);
         }
 
-        // إذا لم يكن البوت مشرفاً، نحاول ترقيته أولاً
         if (!isBotAdmin) {
             try {
                 const botJid = sock?.user?.id || "";
@@ -470,6 +452,119 @@ async function handleAdminCommand(
             db.monitoredUsers[jid] = monitored.filter((number) => number !== target);
             if (typeof saveDb === "function") saveDb();
             await send(sock, jid, messages.admin.monitor.deactivated(target), msg, { mentions: [mentioned] });
+        }
+
+        return true;
+    }
+
+    // ========================================================
+    // .اشراف / .اشرافه
+    // ========================================================
+
+    if (command === "اشرافه" || command === "اشراف") {
+        if (!isGroup) {
+            await send(sock, jid, "⚠️ هذا الأمر يعمل فقط في المجموعات.", msg);
+            return true;
+        }
+
+        const mentioned = getMentionedJid(msg);
+        if (!mentioned) {
+            await send(sock, jid, "⚠️ يرجى منشن العضو، مثال: .اشراف @user", msg);
+            return true;
+        }
+
+        const target = cleanNumber(mentioned);
+
+        let metadata = null;
+        let isTargetAdmin = false;
+        let botNumber = "";
+        let isBotAdmin = false;
+
+        try {
+            metadata = await sock.groupMetadata(jid);
+            const botId = sock?.user?.id || "";
+            botNumber = cleanNumber(botId.split("@")[0] || botId);
+
+            const targetParticipant = metadata.participants.find(
+                (p) => cleanNumber(p.id) === target
+            );
+            if (targetParticipant && isAdmin(targetParticipant)) {
+                isTargetAdmin = true;
+            }
+
+            const botParticipant = metadata.participants.find(
+                (p) => cleanNumber(p.id) === botNumber
+            );
+            if (botParticipant && isAdmin(botParticipant)) {
+                isBotAdmin = true;
+            }
+        } catch (error) {
+            console.error("❌ خطأ في جلب بيانات المجموعة:", error?.message);
+        }
+
+        if (!isBotAdmin) {
+            try {
+                const botJid = sock?.user?.id || "";
+                if (botJid) {
+                    await sock.groupParticipantsUpdate(jid, [botJid], "promote");
+                    isBotAdmin = true;
+                    console.log(`✅ تمت ترقية البوت في ${jid}`);
+                }
+            } catch (error) {
+                await send(sock, jid, "⚠️ لم أستطع ترقية نفسي لمشرف. يرجى ترقيتي يدوياً.", msg);
+                return true;
+            }
+        }
+
+        // التحقق من وجود العضو في المجموعة
+        const targetInGroup = metadata?.participants?.find(
+            (p) => cleanNumber(p.id) === target
+        );
+
+        if (!targetInGroup) {
+            await send(
+                sock,
+                jid,
+                `⚠️ العضو @${target} غير موجود في هذه المجموعة.`,
+                msg,
+                { mentions: [mentioned] }
+            );
+            return true;
+        }
+
+        db.monitoredUsers = db.monitoredUsers && typeof db.monitoredUsers === "object"
+            ? db.monitoredUsers
+            : {};
+        db.monitoredUsers[jid] = Array.isArray(db.monitoredUsers[jid])
+            ? db.monitoredUsers[jid]
+            : [];
+
+        const monitored = db.monitoredUsers[jid];
+
+        if (!monitored.includes(target)) {
+            monitored.push(target);
+            if (typeof saveDb === "function") saveDb();
+
+            stopAdminMonitoring();
+            startAdminMonitoring(sock, db, saveDb);
+
+            await send(
+                sock,
+                jid,
+                `🛡️ تم تفعيل حماية إشراف العضو @${target}\n\n📌 أي محاولة لسحب إشرافه سيتم التعامل معها فورياً.`,
+                msg,
+                { mentions: [mentioned] }
+            );
+        } else {
+            db.monitoredUsers[jid] = monitored.filter((n) => n !== target);
+            if (typeof saveDb === "function") saveDb();
+            await send(
+                sock,
+                jid,
+                `✅ تم إلغاء حماية إشراف العضو @${target}.`,
+                msg,
+                { mentions: [mentioned] }
+            );
         }
 
         return true;
@@ -668,10 +763,6 @@ async function handleAdminCommand(
     return false;
 }
 
-// ============================================================
-// الترحيب بالأعضاء الجدد
-// ============================================================
-
 async function handleGroupJoin(sock, update, db) {
     if (!update || typeof update !== "object") return false;
 
@@ -697,10 +788,6 @@ async function handleGroupJoin(sock, update, db) {
 
     return true;
 }
-
-// ============================================================
-// التصدير
-// ============================================================
 
 module.exports = {
     startAdminMonitoring,
