@@ -108,7 +108,7 @@ const MAX_IDLE_CHECKS = 15;
 const MAX_GAME_COUNT = 8;
 
 // ============================================================
-// 🎮 قائمة انتظار اختيار الفعالية من زر .العاب
+// 🎮 قائمة انتظار اختيار الفعالية من List Message
 // ============================================================
 
 const pendingGamesMenu = Object.create(null);
@@ -186,79 +186,6 @@ function shouldIgnoreMessage(msg) {
     } catch {
         return true;
     }
-}
-
-// ============================================================
-// 🎮 معالجة اختيار الفعالية من قائمة .العاب
-// ============================================================
-
-async function handleGamesMenuSelection(sock, msg, jid, cleanSender, sender, db, owner, botNumber, isGroup) {
-    const listResp = msg.message?.listResponseMessage;
-    if (!listResp) return false;
-
-    const selectedId = listResp.singleSelectReply?.selectedRowId;
-    if (!selectedId || !selectedId.startsWith("game_")) return false;
-
-    const pending = global.pendingGamesMenu && global.pendingGamesMenu[jid];
-
-    if (!pending || pending.sender !== cleanSender) {
-        await sock.sendMessage(jid, {
-            text: "⚠️ هذه القائمة خاصة بصاحب الأمر `.العاب` فقط."
-        }, { quoted: msg }).catch(() => {});
-        return true;
-    }
-
-    delete global.pendingGamesMenu[jid];
-    const cmd = selectedId.replace("game_", "");
-
-    // حالة كريستال
-    if (cmd === "كريستال") {
-        await sock.sendMessage(jid, {
-            text: `*❉▬▬▬▬🎰▬▬▬▬❉*
-  رجاءا أكتب عدد رهانك:
- .كريستال عدد
-مثال:  *.كريستال 50*
-*✥▬▬▬▬🎰▬▬▬▬✥*`
-        }, { quoted: msg }).catch(() => {});
-        return true;
-    }
-
-    // تنفيذ الأمر تلقائياً عبر handleCommand
-    const fakeText = "." + cmd;
-
-    try {
-        const fakeMsg = {
-            ...msg,
-            message: {
-                conversation: fakeText
-            }
-        };
-
-        if (typeof handleCommand !== "function") {
-            _originalError("❌ handleCommand غير صالح - تحقق من commands.js");
-            await sock.sendMessage(jid, {
-                text: "⚠️ خطأ داخلي: لم يتم تحميل أمر الفعالية بشكل صحيح."
-            }, { quoted: msg }).catch(() => {});
-            return true;
-        }
-
-        await handleCommand(sock, jid, fakeMsg, {
-            db,
-            sender,
-            cleanSender,
-            isGroup,
-            isBotOwner: Boolean(owner),
-            botNumber,
-            text: fakeText
-        });
-    } catch (e) {
-        _originalError("List response error:", e?.message);
-        await sock.sendMessage(jid, {
-            text: "⚠️ حدث خطأ أثناء تشغيل الفعالية."
-        }, { quoted: msg }).catch(() => {});
-    }
-
-    return true;
 }
 
 // ============================================================
@@ -724,12 +651,67 @@ function createHandlers() {
                         const botNumber = getBotNumber(sock);
                         const owner = isOwner(cleanSender, sock, msg);
 
-                        // 🎮 معالجة اختيار الفعالية من قائمة .العاب
-                        if (msg.message?.listResponseMessage) {
-                            const handled = await handleGamesMenuSelection(
-                                sock, msg, jid, cleanSender, sender, db, owner, botNumber, isGroup
-                            );
-                            if (handled) continue;
+                        // ============================================
+                        // 🎮 معالجة اختيار الفعالية من List Message
+                        // ============================================
+                        const listResponse = msg.message?.listResponseMessage;
+                        if (listResponse) {
+                            const selectedRowId = listResponse.singleSelectReply?.selectedRowId;
+
+                            if (selectedRowId && selectedRowId.startsWith("game_")) {
+                                const pending = global.pendingGamesMenu && global.pendingGamesMenu[jid];
+
+                                if (!pending || pending.sender !== cleanSender) {
+                                    await sock.sendMessage(jid, {
+                                        text: "⚠️ هذه القائمة خاصة بصاحب الأمر `.العاب` فقط."
+                                    }, { quoted: msg }).catch(() => {});
+                                    continue;
+                                }
+
+                                if (Date.now() - pending.timestamp > 5 * 60 * 1000) {
+                                    delete global.pendingGamesMenu[jid];
+                                    await sock.sendMessage(jid, {
+                                        text: "⚠️ انتهت صلاحية القائمة، أعد كتابة `.العاب`."
+                                    }, { quoted: msg }).catch(() => {});
+                                    continue;
+                                }
+
+                                delete global.pendingGamesMenu[jid];
+                                const cmd = selectedRowId.replace("game_", "");
+
+                                // ⭐ كريستال - يحتاج مبلغ رهان
+                                if (cmd === "كريستال") {
+                                    await sock.sendMessage(jid, {
+                                        text: `*❉▬▬▬▬🎰▬▬▬▬❉*
+  رجاءا أكتب عدد رهانك:
+ .كريستال عدد
+مثال:  *.كريستال 50*
+*✥▬▬▬▬🎰▬▬▬▬✥*`
+                                    }, { quoted: msg }).catch(() => {});
+                                    continue;
+                                }
+
+                                // ⭐ تنفيذ الفعالية
+                                const fakeText = "." + cmd;
+                                try {
+                                    const fakeMsg = {
+                                        ...msg,
+                                        message: { conversation: fakeText }
+                                    };
+                                    await handleCommand(sock, jid, fakeMsg, {
+                                        db,
+                                        sender,
+                                        cleanSender,
+                                        isGroup,
+                                        isBotOwner: Boolean(owner),
+                                        botNumber,
+                                        text: fakeText
+                                    });
+                                } catch (e) {
+                                    _originalError("List response exec error:", e?.message);
+                                }
+                                continue;
+                            }
                         }
 
                         const text = getMessageTextFromMsg(msg);
