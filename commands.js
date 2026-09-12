@@ -30,50 +30,45 @@ let globalGameBlockUntil = 0;
 const pendingGamesMenu = global.pendingGamesMenu || (global.pendingGamesMenu = Object.create(null));
 
 // ============================================================
-// 🎮 خريطة الفعاليات: النص الكامل → الأمر
+// 🎮 خريطة الفعاليات: النص الكامل بالضبط → الأمر
 // ============================================================
 
-const GAME_TEXT_MAP = [
-    { pattern: /تفكـ?🧩ـــ?يك[\s\S]*?لعبة تفكيك الكلمات/, cmd: "تفكيك" },
-    { pattern: /كــ?تــ?✍️ــ?ابـ?ة[\s\S]*?لعبة كتابة الكلمة/, cmd: "كتابة" },
-    { pattern: /صــ?🫣ــ?راحة[\s\S]*?لعبة الصراحة/, cmd: "صراحة" },
-    { pattern: /إيمـــ?😀ــ?وجي[\s\S]*?لعبة الإيموجي/, cmd: "ايموجي" },
-    { pattern: /ايمـــ?😀ــ?وجي[\s\S]*?لعبة الإيموجي/, cmd: "ايموجي" },
-    { pattern: /الـ?حـ?🦊ـ?يوانات[\s\S]*?لعبة الحيوانات/, cmd: "الحيوانات" },
-    { pattern: /أعـــ?🚩ــ?لام[\s\S]*?لعبة الأعلام/, cmd: "اعلام" },
-    { pattern: /اعـــ?🚩ــ?لام[\s\S]*?لعبة الاعلام/, cmd: "اعلام" },
-    { pattern: /ألـــ?🎨ـــ?وان[\s\S]*?لعبة الألوان/, cmd: "الوان" },
-    { pattern: /روليت[\s\S]*?لعبة الروليت/, cmd: "روليت" },
-    { pattern: /كريستال[\s\S]*?لعبة الكريستال/, cmd: "كريستال" }
+const EXACT_GAMES = [
+    { text: "⏣⊰ تفكـ🧩ـــيك ⊱⏣\nلعبة تفكيك الكلمات", cmd: "تفكيك" },
+    { text: "⏣⊰ كــتــ✍️ــابـة ⊱⏣\nلعبة كتابة الكلمة", cmd: "كتابة" },
+    { text: "⏣⊰ ألــــ🎨ـــوان ⊱⏣\nلعبة الألوان", cmd: "الوان" },
+    { text: "⏣⊰ صــ🫣ــراحة ⊱⏣\nلعبة الصراحة", cmd: "صراحة" },
+    { text: "⏣⊰ الـحـ🦊ـيوانات ⊱⏣\nلعبة الحيوانات", cmd: "الحيوانات" },
+    { text: "⏣⊰ أعـــ🚩ــلام ⊱⏣\nلعبة الأعلام", cmd: "اعلام" },
+    { text: "⏣⊰ إيمـــ😀ــوجي ⊱⏣\nلعبة الإيموجي", cmd: "ايموجي" },
+    { text: "❆━═🎲 روليت 🎰═━❆\nلعبة الروليت", cmd: "روليت" },
+    { text: "❆━═🎲 كريستال 🎰═━❆\nلعبة الكريستال", cmd: "كريستال" }
 ];
 
-// كلمات مفتاحية بسيطة (للاحتياط)
-const GAME_KEYWORDS = [
-    { keywords: ["تفكيك"], cmd: "تفكيك" },
-    { keywords: ["كتابة"], cmd: "كتابة" },
-    { keywords: ["صراحة"], cmd: "صراحة" },
-    { keywords: ["إيموجي", "ايموجي"], cmd: "ايموجي" },
-    { keywords: ["الحيوانات", "حيوانات"], cmd: "الحيوانات" },
-    { keywords: ["أعلام", "اعلام"], cmd: "اعلام" },
-    { keywords: ["ألوان", "الوان"], cmd: "الوان" },
-    { keywords: ["روليت"], cmd: "روليت" },
-    { keywords: ["كريستال"], cmd: "كريستال" }
+const PLAIN_GAMES = [
+    { text: "تفكيك", cmd: "تفكيك" },
+    { text: "كتابة", cmd: "كتابة" },
+    { text: "الوان", cmd: "الوان" },
+    { text: "صراحة", cmd: "صراحة" },
+    { text: "الحيوانات", cmd: "الحيوانات" },
+    { text: "اعلام", cmd: "اعلام" },
+    { text: "ايموجي", cmd: "ايموجي" },
+    { text: "روليت", cmd: "روليت" },
+    { text: "كريستال", cmd: "كريستال" }
 ];
 
 function detectGameFromText(text) {
     if (!text) return null;
     const str = String(text).trim();
 
-    // 1. محاولة النص الكامل
-    for (const item of GAME_TEXT_MAP) {
-        if (item.pattern.test(str)) return item.cmd;
+    // 1. مطابقة النص الكامل بالضبط
+    for (const item of EXACT_GAMES) {
+        if (str === item.text) return item.cmd;
     }
 
-    // 2. كلمات مفتاحية بسيطة
-    for (const item of GAME_KEYWORDS) {
-        for (const kw of item.keywords) {
-            if (str.includes(kw)) return item.cmd;
-        }
+    // 2. الأوامر العادية بدون نقطة
+    for (const item of PLAIN_GAMES) {
+        if (str === item.text) return item.cmd;
     }
 
     return null;
@@ -224,7 +219,7 @@ async function handleEmergencyStop(sock, jid, msg, owner) {
 }
 
 // ============================================================
-// 🎮 .العاب - List Message بالنصوص الكاملة
+// 🎮 .العاب - List Message
 // ============================================================
 async function handleGamesList(sock, jid, msg, senderNumber) {
     pendingGamesMenu[jid] = { sender: senderNumber, timestamp: Date.now() };
@@ -285,7 +280,7 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
         console.error("❌ List Message failed:", e2?.message);
     }
 
-    const fallback = headerText + "\n\n⏣⊰ تفكـ🧩ـــيك ⊱⏣ .تفكيك\n⏣⊰ كــتــ✍️ــابـة ⊱⏣ .كتابة\n⏣⊰ ألــــ🎨ـــوان ⊱⏣ .الوان\n⏣⊰ صــ🫣ــراحة ⊱⏣ .صراحة\n⏣⊰ الـحـ🦊ـيوانات ⊱⏣ .الحيوانات\n⏣⊰ أعـــ🚩ــلام ⊱⏣ .اعلام\n⏣⊰ إيمـــ😀ــوجي ⊱⏣ .ايموجي\n❆━═🎲 روليت 🎰═━❆ .روليت\n❆━═🎲 كريستال 🎰═━❆ .كريستال";
+    const fallback = headerText + "\n\n⏣⊰ تفكـ🧩ـــيك ⊱⏣\nلعبة تفكيك الكلمات\n⏣⊰ كــتــ✍️ــابـة ⊱⏣\nلعبة كتابة الكلمة\n⏣⊰ ألــــ🎨ـــوان ⊱⏣\nلعبة الألوان\n⏣⊰ صــ🫣ــراحة ⊱⏣\nلعبة الصراحة\n⏣⊰ الـحـ🦊ـيوانات ⊱⏣\nلعبة الحيوانات\n⏣⊰ أعـــ🚩ــلام ⊱⏣\nلعبة الأعلام\n⏣⊰ إيمـــ😀ــوجي ⊱⏣\nلعبة الإيموجي\n❆━═🎲 روليت 🎰═━❆\nلعبة الروليت\n❆━═🎲 كريستال 🎰═━❆\nلعبة الكريستال";
     await sendText(sock, jid, fallback, msg);
 
     return true;
