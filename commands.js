@@ -29,8 +29,6 @@ const {
 let globalGameBlockUntil = 0;
 const pendingGamesMenu = global.pendingGamesMenu || (global.pendingGamesMenu = Object.create(null));
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 function getMessageText(msg) {
     const m = msg?.message;
     if (!m) return "";
@@ -176,7 +174,7 @@ async function handleEmergencyStop(sock, jid, msg, owner) {
 }
 
 // ============================================================
-// 🎮 .العاب - بأزرار تفاعلية حقيقية
+// 🎮 .العاب - List Message (Sections/Rows/buttonText)
 // ============================================================
 async function handleGamesList(sock, jid, msg, senderNumber) {
     pendingGamesMenu[jid] = { sender: senderNumber, timestamp: Date.now() };
@@ -184,77 +182,35 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
         if (pendingGamesMenu[jid] && pendingGamesMenu[jid].sender === senderNumber) delete pendingGamesMenu[jid];
     }, 5 * 60 * 1000);
 
-    const headerText = "❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆\n     `رجاءاً قم بتحديد الفعالية:`\n❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆";
-
-    const rows = [
-        { title: "⏣⊰ تفكـ🧩ـــيك ⊱⏣", id: "game_تفكيك", description: "لعبة التفكيك" },
-        { title: "⏣⊰ كــتــ✍️ــابـة ⊱⏣", id: "game_كتابة", description: "لعبة الكتابة" },
-        { title: "⏣⊰ ألــــ🎨ـــوان ⊱⏣", id: "game_الوان", description: "لعبة الألوان" },
-        { title: "⏣⊰ صــ🫣ــراحة ⊱⏣", id: "game_صراحة", description: "لعبة الصراحة" },
-        { title: "⏣⊰ الـحـ🦊ـيوانات ⊱⏣", id: "game_الحيوانات", description: "لعبة الحيوانات" },
-        { title: "⏣⊰ أعـــ🚩ــلام ⊱⏣", id: "game_اعلام", description: "لعبة الأعلام" },
-        { title: "⏣⊰ إيمـــ😀ــوجي ⊱⏣", id: "game_ايموجي", description: "لعبة الإيموجي" },
-        { title: "❆━═🎲 روليت 🎰═━❆", id: "game_روليت", description: "لعبة الروليت" },
-        { title: "❆━═🎲 كريستال 🎰═━❆", id: "game_كريستال", description: "لعبة الكريستال" }
-    ];
-
-    // المحاولة 1: الصيغة الحديثة (interactiveMessage)
-    const interactiveMessage = {
-        viewOnceMessage: {
-            message: {
-                interactiveMessage: {
-                    body: { text: headerText },
-                    footer: { text: "اختر الفعالية من القائمة" },
-                    header: { title: "تحديد الفعالية", hasMediaAttachment: false },
-                    nativeFlowMessage: {
-                        buttons: [
-                            {
-                                name: "single_select",
-                                buttonParamsJson: JSON.stringify({
-                                    title: "👈 تحديد 👉",
-                                    sections: [
-                                        { title: "🎮 الفعاليات المتاحة", rows: rows }
-                                    ]
-                                })
-                            }
-                        ],
-                        messageParamsJson: ""
-                    }
-                }
+    const listMessage = {
+        text: "❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆\n     `رجاءاً قم بتحديد الفعالية:`\n❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆",
+        footer: "Aljesat Bot",
+        buttonText: "👈 تحديد 👉",
+        sections: [
+            {
+                title: "🎮 الفعاليات المتاحة",
+                rows: [
+                    { title: "تفكيك 🧩", description: "لعبة تفكيك الكلمات", rowId: "game_تفكيك" },
+                    { title: "كتابة ✍️", description: "لعبة كتابة الكلمة بالضبط", rowId: "game_كتابة" },
+                    { title: "الوان 🎨", description: "لعبة أسماء الألوان", rowId: "game_الوان" },
+                    { title: "صراحة 🫣", description: "لعبة أسئلة الصراحة", rowId: "game_صراحة" },
+                    { title: "الحيوانات 🦊", description: "لعبة تخمين الحيوانات", rowId: "game_الحيوانات" },
+                    { title: "اعلام 🚩", description: "لعبة أعلام الدول", rowId: "game_اعلام" },
+                    { title: "ايموجي 😀", description: "لعبة تخمين الإيموجي", rowId: "game_ايموجي" },
+                    { title: "روليت 🎰", description: "لعبة الكازينو - الدبوس", rowId: "game_روليت" },
+                    { title: "كريستال 💎", description: "لعبة الكازينو - الكريستال", rowId: "game_كريستال" }
+                ]
             }
-        }
+        ]
     };
 
     try {
-        await sock.sendMessage(jid, interactiveMessage, { quoted: msg });
-        return true;
-    } catch (e1) {
-        console.error("❌ InteractiveMessage failed:", e1?.message);
-    }
-
-    // المحاولة 2: الصيغة القديمة (listMessage)
-    try {
-        const listMessage = {
-            text: headerText,
-            footer: "اختر الفعالية ثم اضغط على الخيار",
-            title: "تحديد الفعالية",
-            buttonText: "👈 تحديد 👉",
-            sections: [
-                {
-                    title: "🎮 الفعاليات المتاحة",
-                    rows: rows.map(r => ({ title: r.title, rowId: r.id }))
-                }
-            ]
-        };
         await sock.sendMessage(jid, listMessage, { quoted: msg });
-        return true;
-    } catch (e2) {
-        console.error("❌ ListMessage failed:", e2?.message);
+    } catch (e) {
+        console.error("❌ فشل إرسال List Message:", e?.message);
+        const fallback = "❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆\n     `رجاءاً قم بتحديد الفعالية:`\n❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆\n\n🧩 .تفكيك\n✍️ .كتابة\n🎨 .الوان\n🫣 .صراحة\n🦊 .الحيوانات\n🚩 .اعلام\n😀 .ايموجي\n🎰 .روليت\n🎰 .كريستال";
+        await sendText(sock, jid, fallback, msg);
     }
-
-    // المحاولة 3: Fallback نصي
-    const fallback = headerText + "\n\n🧩 .تفكيك\n✍️ .كتابة\n🎨 .الوان\n🫣 .صراحة\n🦊 .الحيوانات\n🚩 .اعلام\n😀 .ايموجي\n🎰 .روليت\n🎰 .كريستال";
-    await sendText(sock, jid, fallback, msg);
 
     return true;
 }
