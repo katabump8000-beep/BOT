@@ -26,13 +26,9 @@ function getMentionedJid(msg) {
 }
 
 function isAdmin(participant) {
-    return Boolean(
-        participant &&
-        (
-            participant.admin === "admin" ||
-            participant.admin === "superadmin"
-        )
-    );
+    if (!participant) return false;
+    const adminStatus = String(participant.admin || "").toLowerCase();
+    return adminStatus === "admin" || adminStatus === "superadmin" || participant.admin === true;
 }
 
 async function send(sock, jid, text, msg = null, extra = {}) {
@@ -280,7 +276,6 @@ async function handleAdminCommand(
         const target = cleanNumber(mentioned);
         const permissions = ensurePermissions(db);
 
-        // ⭐ المستوى 5 = كل الصلاحيات
         if (permissionType === "5") {
             for (const level of ["1", "2", "3", "4"]) {
                 if (!permissions[level].includes(target)) {
@@ -394,36 +389,6 @@ async function handleAdminCommand(
 
         const target = cleanNumber(mentioned);
 
-        let isBotAdmin = false;
-        try {
-            const metadata = await sock.groupMetadata(jid);
-            const botId = sock?.user?.id || "";
-            const botNumberClean = cleanNumber(botId.split("@")[0] || botId);
-            
-            const botParticipant = metadata.participants.find(
-                (p) => cleanNumber(p.id) === botNumberClean
-            );
-            
-            if (botParticipant && isAdmin(botParticipant)) {
-                isBotAdmin = true;
-            }
-        } catch (error) {
-            console.error("❌ خطأ في التحقق من صلاحية البوت:", error?.message);
-        }
-
-        if (!isBotAdmin) {
-            try {
-                const botJid = sock?.user?.id || "";
-                if (botJid) {
-                    await sock.groupParticipantsUpdate(jid, [botJid], "promote");
-                    console.log(`✅ تمت ترقية البوت في المجموعة ${jid}`);
-                    isBotAdmin = true;
-                }
-            } catch (error) {
-                console.error("❌ فشل ترقية البوت:", error?.message);
-            }
-        }
-
         db.monitoredUsers = db.monitoredUsers && typeof db.monitoredUsers === "object"
             ? db.monitoredUsers
             : {};
@@ -458,7 +423,7 @@ async function handleAdminCommand(
     }
 
     // ========================================================
-    // .اشراف / .اشرافه
+    // .اشرافه / .اشراف
     // ========================================================
 
     if (command === "اشرافه" || command === "اشراف") {
@@ -476,50 +441,36 @@ async function handleAdminCommand(
         const target = cleanNumber(mentioned);
 
         let metadata = null;
-        let isTargetAdmin = false;
         let botNumber = "";
-        let isBotAdmin = false;
 
         try {
             metadata = await sock.groupMetadata(jid);
             const botId = sock?.user?.id || "";
             botNumber = cleanNumber(botId.split("@")[0] || botId);
-
-            const targetParticipant = metadata.participants.find(
-                (p) => cleanNumber(p.id) === target
-            );
-            if (targetParticipant && isAdmin(targetParticipant)) {
-                isTargetAdmin = true;
-            }
-
-            const botParticipant = metadata.participants.find(
-                (p) => cleanNumber(p.id) === botNumber
-            );
-            if (botParticipant && isAdmin(botParticipant)) {
-                isBotAdmin = true;
-            }
         } catch (error) {
             console.error("❌ خطأ في جلب بيانات المجموعة:", error?.message);
         }
 
-        if (!isBotAdmin) {
-            try {
-                const botJid = sock?.user?.id || "";
-                if (botJid) {
-                    await sock.groupParticipantsUpdate(jid, [botJid], "promote");
-                    isBotAdmin = true;
-                    console.log(`✅ تمت ترقية البوت في ${jid}`);
-                }
-            } catch (error) {
-                await send(sock, jid, "⚠️ لم أستطع ترقية نفسي لمشرف. يرجى ترقيتي يدوياً.", msg);
-                return true;
+        // محاولة ترقية البوت (تجاهل الخطأ)
+        try {
+            const botJid = sock?.user?.id || "";
+            if (botJid) {
+                await sock.groupParticipantsUpdate(jid, [botJid], "promote");
+                console.log(`✅ تمت ترقية البوت في ${jid}`);
+                await new Promise(r => setTimeout(r, 1500));
+                try {
+                    metadata = await sock.groupMetadata(jid);
+                } catch (_) {}
             }
+        } catch (error) {
+            console.log("ℹ️ البوت مشرف بالفعل أو فشلت الترقية - المتابعة...");
         }
 
-        // التحقق من وجود العضو في المجموعة
-        const targetInGroup = metadata?.participants?.find(
-            (p) => cleanNumber(p.id) === target
-        );
+        // التحقق من وجود العضو في المجموعة (بشكل مرن)
+        const targetInGroup = metadata?.participants?.find((p) => {
+            const pid = cleanNumber(p.id);
+            return pid === target || pid.endsWith(target) || target.endsWith(pid);
+        });
 
         if (!targetInGroup) {
             await send(
