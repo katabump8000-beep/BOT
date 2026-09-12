@@ -1,1 +1,1 @@
-# BOT
+# SOLAR
