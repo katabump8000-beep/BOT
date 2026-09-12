@@ -174,7 +174,7 @@ async function handleEmergencyStop(sock, jid, msg, owner) {
 }
 
 // ============================================================
-// 🎮 .العاب - List Message باستخدام qadeer-btns
+// 🎮 .العاب - List Message بالزخرفة الجديدة
 // ============================================================
 async function handleGamesList(sock, jid, msg, senderNumber) {
     pendingGamesMenu[jid] = { sender: senderNumber, timestamp: Date.now() };
@@ -182,9 +182,20 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
         if (pendingGamesMenu[jid] && pendingGamesMenu[jid].sender === senderNumber) delete pendingGamesMenu[jid];
     }, 5 * 60 * 1000);
 
-    const headerText = "❆━━━━━═⏣⊰🎮⊱⏣═━━━━━❆\n     `رجاءاً قم بتحديد الفعالية:`\n❆━━━━━═⏣⊰🎰⊱⏣═━━━━━❆";
+    const headerText = "_*❆━━═⏣⊰🎮⊱⏣═━━❆*_\n  `رجاءاً قم بتحديد الفعالية:`\n_*❆━━═⏣⊰🎰⊱⏣═━━❆*_";
 
-    // محاولة 1: qadeer-btns
+    const rows = [
+        { id: "game_تفكيك", title: "⏣⊰ تفكـ🧩ـــيك ⊱⏣", description: "لعبة تفكيك الكلمات" },
+        { id: "game_كتابة", title: "⏣⊰ كــتــ✍️ــابـة ⊱⏣", description: "لعبة كتابة الكلمة" },
+        { id: "game_الوان", title: "⏣⊰ ألــــ🎨ـــوان ⊱⏣", description: "لعبة الألوان" },
+        { id: "game_صراحة", title: "⏣⊰ صــ🫣ــراحة ⊱⏣", description: "لعبة الصراحة" },
+        { id: "game_الحيوانات", title: "⏣⊰ الـحـ🦊ـيوانات ⊱⏣", description: "لعبة الحيوانات" },
+        { id: "game_اعلام", title: "⏣⊰ أعـــ🚩ــلام ⊱⏣", description: "لعبة الأعلام" },
+        { id: "game_ايموجي", title: "⏣⊰ إيمـــ😀ــوجي ⊱⏣", description: "لعبة الإيموجي" },
+        { id: "game_روليت", title: "❆━═🎲 روليت 🎰═━❆", description: "لعبة الروليت" },
+        { id: "game_كريستال", title: "❆━═🎲 كريستال 🎰═━❆", description: "لعبة الكريستال" }
+    ];
+
     try {
         const { sendInteractiveMessage } = require("@qadeerxtech/qadeer-btns");
         await sendInteractiveMessage(sock, jid, {
@@ -196,20 +207,7 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
                     buttonParamsJson: JSON.stringify({
                         title: "👈 تحديد 👉",
                         sections: [
-                            {
-                                title: "🎮 الفعاليات المتاحة",
-                                rows: [
-                                    { id: "game_تفكيك", title: "تفكيك 🧩", description: "لعبة تفكيك الكلمات" },
-                                    { id: "game_كتابة", title: "كتابة ✍️", description: "لعبة كتابة الكلمة" },
-                                    { id: "game_الوان", title: "الوان 🎨", description: "لعبة الألوان" },
-                                    { id: "game_صراحة", title: "صراحة 🫣", description: "لعبة الصراحة" },
-                                    { id: "game_الحيوانات", title: "الحيوانات 🦊", description: "لعبة الحيوانات" },
-                                    { id: "game_اعلام", title: "اعلام 🚩", description: "لعبة الأعلام" },
-                                    { id: "game_ايموجي", title: "ايموجي 😀", description: "لعبة الإيموجي" },
-                                    { id: "game_روليت", title: "روليت 🎰", description: "لعبة الروليت" },
-                                    { id: "game_كريستال", title: "كريستال 💎", description: "لعبة الكريستال" }
-                                ]
-                            }
+                            { title: "🎮 الفعاليات المتاحة", rows: rows }
                         ]
                     })
                 }
@@ -220,7 +218,6 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
         console.error("❌ qadeer-btns failed:", e1?.message);
     }
 
-    // محاولة 2: List Message العادي
     try {
         await sock.sendMessage(jid, {
             text: headerText,
@@ -229,17 +226,7 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
             sections: [
                 {
                     title: "🎮 الفعاليات المتاحة",
-                    rows: [
-                        { title: "تفكيك 🧩", rowId: "game_تفكيك", description: "لعبة تفكيك" },
-                        { title: "كتابة ✍️", rowId: "game_كتابة", description: "لعبة كتابة" },
-                        { title: "الوان 🎨", rowId: "game_الوان", description: "لعبة الألوان" },
-                        { title: "صراحة 🫣", rowId: "game_صراحة", description: "لعبة الصراحة" },
-                        { title: "الحيوانات 🦊", rowId: "game_الحيوانات", description: "لعبة الحيوانات" },
-                        { title: "اعلام 🚩", rowId: "game_اعلام", description: "لعبة الأعلام" },
-                        { title: "ايموجي 😀", rowId: "game_ايموجي", description: "لعبة الإيموجي" },
-                        { title: "روليت 🎰", rowId: "game_روليت", description: "لعبة الروليت" },
-                        { title: "كريستال 💎", rowId: "game_كريستال", description: "لعبة الكريستال" }
-                    ]
+                    rows: rows.map(r => ({ title: r.title, rowId: r.id, description: r.description }))
                 }
             ]
         }, { quoted: msg });
@@ -248,8 +235,7 @@ async function handleGamesList(sock, jid, msg, senderNumber) {
         console.error("❌ List Message failed:", e2?.message);
     }
 
-    // محاولة 3: Fallback نصي
-    const fallback = headerText + "\n\n🧩 .تفكيك\n✍️ .كتابة\n🎨 .الوان\n🫣 .صراحة\n🦊 .الحيوانات\n🚩 .اعلام\n😀 .ايموجي\n🎰 .روليت\n🎰 .كريستال";
+    const fallback = headerText + "\n\n⏣⊰ تفكـ🧩ـــيك ⊱⏣ .تفكيك\n⏣⊰ كــتــ✍️ــابـة ⊱⏣ .كتابة\n⏣⊰ ألــــ🎨ـــوان ⊱⏣ .الوان\n⏣⊰ صــ🫣ــراحة ⊱⏣ .صراحة\n⏣⊰ الـحـ🦊ـيوانات ⊱⏣ .الحيوانات\n⏣⊰ أعـــ🚩ــلام ⊱⏣ .اعلام\n⏣⊰ إيمـــ😀ــوجي ⊱⏣ .ايموجي\n❆━═🎲 روليت 🎰═━❆ .روليت\n❆━═🎲 كريستال 🎰═━❆ .كريستال";
     await sendText(sock, jid, fallback, msg);
 
     return true;
@@ -719,7 +705,7 @@ async function handleCommand(sock, jid, msg, context = {}) {
 
     if (finalText.trim().toLowerCase() === ".stop everything") return handleEmergencyStop(sock, jid, msg, owner);
 
-    if (isGameCommand(command) || command === "بوت" || command === "اشرافه" ||
+    if (isGameCommand(command) || command === "بوت" || command === "اشرافه" || command === "اشراف" ||
         command === "استقبال" || command === "ورك" || command === "work" ||
         command === "طرف" || command === "سحب") {
         if (!group) {
@@ -729,7 +715,7 @@ async function handleCommand(sock, jid, msg, context = {}) {
         if (isGameCommand(command) && !await checkGameContext(sock, jid, msg, group)) return true;
     }
 
-    const adminCommands = new Set(["سماح", "صلاحيات", "بوت", "اشرافه", "استقبال", "ورك", "work", "طرف", "سحب"]);
+    const adminCommands = new Set(["سماح", "صلاحيات", "بوت", "اشرافه", "اشراف", "استقبال", "ورك", "work", "طرف", "سحب"]);
     if (adminCommands.has(command)) {
         const handled = await handleAdminCommand(sock, jid, msg, command, parts, senderNumber, sender, db, saveDb, owner, group, (u, l) => hasPermission(u, l, owner));
         return handled !== false;
