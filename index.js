@@ -648,7 +648,7 @@ function createHandlers() {
                         const owner = isOwner(cleanSender, sock, msg);
 
                         // ============================================
-                        // 🎮 معالجة اختيار الفعالية من List Message
+                        // 🎮 معالجة اختيار الفعالية
                         // ============================================
                         const listResponse = msg.message?.listResponseMessage;
                         if (listResponse) {
@@ -675,17 +675,20 @@ function createHandlers() {
                                 delete global.pendingGamesMenu[jid];
                                 const cmd = selectedRowId.replace("game_", "");
 
+                                // ⭐ حذف رسالة الاختيار
+                                try {
+                                    await sock.sendMessage(jid, { delete: msg.key });
+                                } catch (_) {}
+
+                                // ⭐ حالة كريستال
                                 if (cmd === "كريستال") {
                                     await sock.sendMessage(jid, {
-                                        text: `*❉▬▬▬▬🎰▬▬▬▬❉*
-  رجاءا أكتب عدد رهانك:
- .كريستال عدد
-مثال:  *.كريستال 50*
-*✥▬▬▬▬🎰▬▬▬▬✥*`
+                                        text: "*❉▬▬▬▬🎰▬▬▬▬❉*\n رجاءا اكتب امر: \n*كريستال 00*\nضع عدد الرهان بدلا من 00\nمثال:  `.كريستال 50`\n*✥▬▬▬▬🎰▬▬▬▬✥*"
                                     }, { quoted: msg }).catch(() => {});
                                     continue;
                                 }
 
+                                // ⭐ تنفيذ الأمر تلقائياً
                                 const fakeText = "." + cmd;
                                 try {
                                     const fakeMsg = {
