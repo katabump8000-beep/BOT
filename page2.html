@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تحت الصيانة</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#000;
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Segoe UI', sans-serif;
+    text-align:center;
+    padding:20px;
+  }
+  .msg {
+    color:#ffcc00;
+    font-size:2rem;
+    font-weight:900;
+    text-shadow:0 0 20px #ff8800, 0 0 40px #ff4400;
+    animation:pulse 1.5s infinite;
+    line-height:1.6;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.6; transform:scale(1.05); }
+  }
+  .back-btn {
+    display:inline-block;
+    margin-top:40px;
+    padding:12px 28px;
+    background:rgba(255,170,0,0.15);
+    border:1px solid #ffaa00;
+    border-radius:25px;
+    color:#ffcc00;
+    text-decoration:none;
+    font-weight:bold;
+    transition:.3s;
+  }
+  .back-btn:hover { background:rgba(255,170,0,0.35); }
+</style>
+</head>
+<body>
+  <div>
+    <div class="msg">⚠️ تحت الصيانة من قبل المطور الجيسي ⚠️</div>
+    <a href="index.html" class="back-btn">⬅ رجوع للرئيسية</a>
+  </div>
+</body>
+</html>
