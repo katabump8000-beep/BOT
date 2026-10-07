@@ -541,6 +541,18 @@
     pointer-events: none;
     font-style: italic;
   }
+  #verifyBox { display: none; text-align: center; padding: 10px 6px 4px; }
+  #verifyBox.show { display: block; }
+  #verifyBox .v-title { color: #ffa94d; font-size: 17px; margin-bottom: 14px; line-height: 1.8; }
+  #verifyBox .v-code {
+    font-size: 54px; font-weight: bold; letter-spacing: 12px; direction: ltr;
+    color: #fff; text-shadow: 0 0 18px #ff6a00, 0 0 36px #ff3d00;
+    background: rgba(0,0,0,.45); border: 2px solid #ff6a00; border-radius: 14px;
+    padding: 12px 8px 12px 20px; margin: 8px auto 14px; max-width: 280px;
+  }
+  #verifyBox .v-cmd { color: #ddd; font-size: 15px; line-height: 1.9; }
+  #verifyBox .v-cmd b { color: #4ade80; direction: ltr; unicode-bidi: embed; }
+  #verifyBox .v-wait { margin-top: 14px; color: #aaa; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -557,7 +569,6 @@
 <!-- فيديو المقدمة -->
 <div id="introWrap">
   <video id="introVideo" playsinline muted preload="auto" autoplay>
-    <source src="intro.webm" type="video/webm">
     <source src="intro.mp4"  type="video/mp4">
   </video>
   <canvas id="sparks"></canvas>
@@ -605,6 +616,14 @@
     <div id="formContent" style="display:none;">
       <div id="errBox"></div>
 
+      <div id="verifyBox">
+        <div class="v-title">🔐 للتأكد أنك أنت صاحب الرابط<br>اكتب هذا الأمر في القروب:</div>
+        <div class="v-code" id="vCode">----</div>
+        <div class="v-cmd">اكتب في القروب:<br><b id="vCmd">.تحقق ----</b></div>
+        <div class="v-wait">⏳ بانتظار تأكيدك... تنتقل الصفحة تلقائياً</div>
+      </div>
+
+      <div id="formFields" style="display:none;">
       <div class="lava-border" id="lavaBorder">
         <div class="field-inner">
           <div class="field">
@@ -638,6 +657,7 @@
       </div>
 
       <button id="submitBtn">🔥 التالي</button>
+      </div>
     </div>
 
   </div>
@@ -665,6 +685,10 @@
   const lavaBorder     = $("lavaBorder");
   const muslimRow      = $("muslimRow");
   const submitBtn      = $("submitBtn");
+  const verifyBox      = $("verifyBox");
+  const formFields     = $("formFields");
+  const vCode          = $("vCode");
+  const vCmd           = $("vCmd");
   const muteBtn        = $("muteBtn");
 
   const nickInput      = $("nickname");
@@ -718,6 +742,8 @@
 
   introVideo.addEventListener("ended", endIntro);
   introVideo.addEventListener("error", endIntro);
+  const introSrc = introVideo.querySelector("source");
+  if (introSrc) introSrc.addEventListener("error", endIntro);
 
   // احتياط: لو الفيديو ما اشتغل → 10 ثواني
   const introFallback = setTimeout(endIntro, 10000);
@@ -891,10 +917,15 @@
         return;
       }
 
-      // 🟢 جاهز
+      // 🟢 الرابط صحيح
       if (data?.valid === true) {
         loadingBox.classList.remove("show");
         formContent.style.display = "block";
+        if (data.verified) {
+          formFields.style.display = "block";
+        } else {
+          showVerify(data.code);
+        }
         return;
       }
 
@@ -909,6 +940,40 @@
       formContent.style.display = "block";
       showError("⚠️ تعذّر الاتصال بالبوت. تحقق من اتصالك ثم أعد المحاولة.");
     }
+  }
+
+  // ============================================================
+  // التحقق من الهوية: العضو يكتب .تحقق + الكود في القروب
+  // ============================================================
+  let pollTimer = null;
+
+  function showVerify(code) {
+    vCode.textContent = code || "----";
+    vCmd.textContent = ".تحقق " + (code || "----");
+    verifyBox.classList.add("show");
+    formFields.style.display = "none";
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(pollVerify, 2500);
+  }
+
+  async function pollVerify() {
+    try {
+      const { status, data } = await apiCall("/api/flow/check-session", { token, bindingToken }, 8000);
+      if (status === 403) { clearInterval(pollTimer); verifyBox.classList.remove("show"); formContent.style.display = "none"; showDeny(); return; }
+      if (data?.valid === false) {
+        clearInterval(pollTimer);
+        verifyBox.classList.remove("show");
+        if (data.reason === "registered" && data.enterLink) { window.location.href = data.enterLink; return; }
+        showError(data.reason === "registered" ? "✅ أنت مسجل مسبقاً." : "⌛ انتهت صلاحية الرابط. اطلب من المشرف رابطاً جديداً عبر أمر .جديد");
+        return;
+      }
+      if (data?.valid === true && data.verified) {
+        clearInterval(pollTimer);
+        verifyBox.classList.remove("show");
+        formFields.style.display = "block";
+        playSound(audNort, true);
+      }
+    } catch (_) { /* نعيد المحاولة بعد 2.5 ثانية */ }
   }
 
   // ============================================================
