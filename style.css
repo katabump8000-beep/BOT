@@ -1,6 +1,6 @@
 /* ============================================
    F.I.R — مملكة النار
-   VERSION 10 — إصلاح عرض الشاشات
+   التصميم الأصلي (الأسطوري)
    ============================================ */
 
 * {
@@ -14,23 +14,519 @@ html, body {
   min-height: 100vh;
   font-family: 'Tahoma', 'Segoe UI', 'Arial', sans-serif;
   color: #fff;
-  background: #0a0500;
+  background: #000;
   overflow-x: hidden;
   direction: rtl;
 }
 
 /* ============================================
-   الشاشات — فقط الواحدة النشطة تظهر
+   الخلفية النارية
+   ============================================ */
+
+.fire-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(255, 80, 0, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse at 20% 20%, rgba(255, 100, 0, 0.12) 0%, transparent 45%),
+    radial-gradient(ellipse at 80% 30%, rgba(255, 60, 0, 0.10) 0%, transparent 45%),
+    linear-gradient(180deg, #000 0%, #0a0300 40%, #000 100%);
+  animation: fireGlow 7s ease-in-out infinite alternate;
+}
+
+@keyframes fireGlow {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.92; }
+  100% { opacity: 1; }
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(circle at 50% 50%, transparent 0%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+}
+
+/* ============================================
+   الشاشات
    ============================================ */
 
 .screen {
   display: none;
   min-height: 100vh;
   padding: 20px 14px 40px;
+  animation: fadeIn 0.4s ease;
 }
 
 .screen.active {
   display: block;
 }
 
-/* ... (باقي الكود كما هو من الرسالة السابقة) ... */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.container {
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   الشعار والعنوان
+   ============================================ */
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  margin-top: 10px;
+}
+
+.brand-flame {
+  font-size: 30px;
+  filter: drop-shadow(0 0 12px #ff6a00) drop-shadow(0 0 24px #ff3300);
+  animation: flamePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes flamePulse {
+  0%, 100% { transform: scale(1) rotate(-3deg); }
+  50%      { transform: scale(1.15) rotate(3deg); }
+}
+
+.brand-title {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  background: linear-gradient(90deg, #ffd34d, #ff7a00, #ff2e00, #ff7a00, #ffd34d);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientFlow 3s linear infinite;
+  filter: drop-shadow(0 0 10px rgba(255, 106, 0, 0.9));
+}
+
+@keyframes gradientFlow {
+  to { background-position: 200% center; }
+}
+
+.welcome-title {
+  text-align: center;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.7;
+  margin-bottom: 14px;
+  background: linear-gradient(180deg, #fff3a8, #ffb300 45%, #ff5a00);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 10px rgba(255, 90, 0, 0.85));
+}
+
+.neon-text {
+  text-align: center;
+  font-size: 19px;
+  font-weight: 800;
+  color: #b6ff3b;
+  margin-bottom: 22px;
+  text-shadow:
+    0 0 6px #b6ff3b,
+    0 0 14px #7dff00,
+    0 0 26px #4cff00;
+  animation: neonPulse 2s ease-in-out infinite;
+}
+
+@keyframes neonPulse {
+  0%, 100% {
+    text-shadow: 0 0 6px #b6ff3b, 0 0 14px #7dff00, 0 0 26px #4cff00;
+  }
+  50% {
+    text-shadow: 0 0 3px #b6ff3b, 0 0 8px #7dff00, 0 0 14px #4cff00;
+  }
+}
+
+/* ============================================
+   النموذج
+   ============================================ */
+
+#register-form {
+  background: rgba(20, 10, 5, 0.5);
+  border: 1px solid rgba(255, 140, 0, 0.25);
+  border-radius: 18px;
+  padding: 22px 18px;
+  box-shadow: 0 0 25px rgba(255, 90, 0, 0.15);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.field {
+  margin-bottom: 18px;
+}
+
+.field label {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #ffcc80;
+  line-height: 1.6;
+}
+
+.optional {
+  font-size: 13px;
+  font-weight: 400;
+  color: #a87a4a;
+}
+
+.field input[type="text"],
+.field input[type="number"] {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 16px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  border-radius: 10px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.field input::placeholder {
+  color: #8a5a3a;
+}
+
+.field input:focus {
+  border-color: #ff8c00;
+  background: rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.2);
+}
+
+/* ============================================
+   اختيار الجنس
+   ============================================ */
+
+.segmented {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.segmented button {
+  flex: 1;
+  padding: 12px 6px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  color: #ffcc80;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.segmented button:active {
+  transform: scale(0.96);
+}
+
+.segmented button.selected {
+  color: #fff;
+  background: rgba(255, 100, 0, 0.25);
+  border-color: #ff8c00;
+  box-shadow: 0 0 12px rgba(255, 106, 0, 0.5);
+}
+
+#gender-custom {
+  margin-top: 6px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ============================================
+   Checkbox
+   ============================================ */
+
+.checkbox-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.checkbox-field input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: #ff6a00;
+  cursor: pointer;
+}
+
+.checkbox-field label {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #ffcc80;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ============================================
+   الأخطاء
+   ============================================ */
+
+.error {
+  color: #ff5252;
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 82, 82, 0.12);
+  border-radius: 8px;
+  border-right: 3px solid #ff5252;
+  display: none;
+  animation: shake 0.3s ease;
+}
+
+.error.show {
+  display: block;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-5px); }
+  75%      { transform: translateX(5px); }
+}
+
+/* ============================================
+   زر التالي
+   ============================================ */
+
+.btn-next {
+  width: 100%;
+  padding: 15px;
+  font-size: 18px;
+  font-weight: 900;
+  font-family: inherit;
+  color: #fff;
+  background: linear-gradient(180deg, #ff9a1f, #ff4d00);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(255, 90, 0, 0.6);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.btn-next:active {
+  transform: translateY(2px) scale(0.98);
+}
+
+.btn-next:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Spinner
+   ============================================ */
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   شاشة النجاح
+   ============================================ */
+
+.success-container {
+  text-align: center;
+  padding-top: 40px;
+}
+
+.success-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 20px rgba(0, 255, 100, 0.9));
+  animation: successPop 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+@keyframes successPop {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+.success-title {
+  font-size: 32px;
+  font-weight: 900;
+  color: #9dffbf;
+  margin-bottom: 18px;
+  text-shadow:
+    0 0 10px rgba(80, 255, 150, 0.9),
+    0 0 30px rgba(80, 255, 150, 0.5);
+}
+
+.success-text {
+  font-size: 17px;
+  line-height: 1.9;
+  color: #d4ffe0;
+  margin-bottom: 14px;
+}
+
+.btn-enter {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 18px 50px;
+  font-size: 22px;
+  font-weight: 900;
+  color: #02290f;
+  background: linear-gradient(180deg, #4dff7a, #00b34a);
+  border: none;
+  border-radius: 50px;
+  text-decoration: none;
+  box-shadow:
+    0 0 25px rgba(0, 255, 120, 0.8),
+    0 0 50px rgba(0, 255, 120, 0.4);
+  animation: glowPulse 1.6s ease-in-out infinite;
+}
+
+.btn-enter:active {
+  transform: scale(0.96);
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(0, 255, 120, 0.8), 0 0 50px rgba(0, 255, 120, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(0, 255, 120, 0.6), 0 0 30px rgba(0, 255, 120, 0.25);
+  }
+}
+
+/* ============================================
+   شاشة "مسجل بالفعل"
+   ============================================ */
+
+.registered-container {
+  text-align: center;
+  padding-top: 60px;
+}
+
+.registered-icon {
+  font-size: 90px;
+  margin-bottom: 24px;
+  filter: drop-shadow(0 0 25px rgba(255, 180, 60, 0.9));
+  animation: registeredFloat 2.5s ease-in-out infinite;
+}
+
+@keyframes registeredFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+.registered-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffcc80;
+  margin-bottom: 20px;
+  text-shadow:
+    0 0 15px rgba(255, 180, 60, 0.9),
+    0 0 35px rgba(255, 140, 0, 0.5);
+}
+
+.registered-text {
+  font-size: 16px;
+  line-height: 2;
+  color: #ffe0b2;
+  margin-bottom: 14px;
+  padding: 0 10px;
+}
+
+/* ============================================
+   شاشة الرفض / الخطأ
+   ============================================ */
+
+.denied-container {
+  text-align: center;
+  padding-top: 60px;
+}
+
+.denied-icon {
+  font-size: 90px;
+  margin-bottom: 24px;
+  filter: drop-shadow(0 0 20px rgba(255, 60, 60, 0.8));
+  animation: deniedShake 0.6s ease;
+}
+
+@keyframes deniedShake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-10px); }
+  40%      { transform: translateX(10px); }
+  60%      { transform: translateX(-8px); }
+  80%      { transform: translateX(8px); }
+}
+
+.denied-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: #ff8080;
+  margin-bottom: 18px;
+  text-shadow: 0 0 15px rgba(255, 60, 60, 0.7);
+}
+
+.denied-text {
+  font-size: 16px;
+  line-height: 2;
+  color: #ffcccc;
+  padding: 0 10px;
+}
+
+.denied-text code {
+  background: rgba(255, 140, 0, 0.2);
+  padding: 3px 10px;
+  border-radius: 6px;
+  color: #ffb347;
+  font-family: monospace;
+  font-size: 15px;
+}
+
+/* ============================================
+   الجوال
+   ============================================ */
+
+@media (max-width: 400px) {
+  .brand-title { font-size: 30px; }
+  .welcome-title { font-size: 17px; }
+  .neon-text { font-size: 16px; }
+  .field label { font-size: 14px; }
+  .btn-next { font-size: 17px; padding: 14px; }
+  .success-title { font-size: 26px; }
+  .btn-enter { font-size: 18px; padding: 15px 40px; }
+  .registered-title { font-size: 22px; }
+  .registered-icon { font-size: 70px; }
+   }
