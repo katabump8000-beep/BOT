@@ -61,9 +61,9 @@
       <div class="field">
         <label>⚧️ ما جنسك؟</label>
         <div class="segmented" id="gender-seg">
-          <button type="button" data-value="male">ذكر</button>
-          <button type="button" data-value="female">أنثى</button>
-          <button type="button" data-value="custom">مخصص</button>
+          <button type="button" data-value="male">♂️ ذكر</button>
+          <button type="button" data-value="female">♀️ أنثى</button>
+          <button type="button" data-value="custom">🚫 مخصص</button>
         </div>
         <input
           type="text"
@@ -125,7 +125,27 @@
   </div>
 </div>
 
-<!-- ================= شاشة 3: الرفض ================= -->
+<!-- ================= شاشة 3: مسجل بالفعل ================= -->
+<div id="screen-registered" class="screen">
+  <div class="container registered-container">
+    <div class="registered-icon">👤</div>
+    <h2 class="registered-title">أنت مسجل بالفعل!</h2>
+    <p class="registered-text">
+      عزيزي/تي<br>
+      لقد قمت بالتسجيل في مملكة النار من قبل.<br>
+      لا يمكنك التسجيل مرة أخرى.
+    </p>
+    <p class="registered-text">
+      إذا كنت تريد الدخول للقروب الأساسي،<br>
+      اضغط الزر التالي:
+    </p>
+    <a href="#" id="btn-enter-registered" class="btn-enter" target="_blank" rel="noopener">
+      🟢 الدخول
+    </a>
+  </div>
+</div>
+
+<!-- ================= شاشة 4: الرفض ================= -->
 <div id="screen-denied" class="screen">
   <div class="container denied-container">
     <div class="denied-icon">⛔</div>
@@ -136,7 +156,7 @@
   </div>
 </div>
 
-<!-- ================= شاشة 4: خطأ عام ================= -->
+<!-- ================= شاشة 5: خطأ عام ================= -->
 <div id="screen-error" class="screen">
   <div class="container denied-container">
     <div class="denied-icon">⚠️</div>
