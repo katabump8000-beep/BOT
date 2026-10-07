@@ -2,150 +2,155 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>𝑨𝑳𝑱𝑬𝑺𝑰</title>
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { height:100%; }
-  body {
-    background:#000 url('images/blue.png') no-repeat center center fixed;
-    background-size: cover;
-    min-height:100vh;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    font-family:'Segoe UI', sans-serif;
-    padding:20px;
-  }
-  body::before {
-    content:''; position:fixed; inset:0;
-    background:rgba(0,0,0,0.65); z-index:0;
-  }
-
-  .title {
-    position:relative; z-index:1;
-    color:#fff; font-size:2.2rem; margin-bottom:25px;
-    text-shadow:0 0 20px #00aaff, 0 0 40px #00aaff;
-    letter-spacing:3px;
-    text-align:center;
-  }
-
-  .buttons {
-    position:relative; z-index:1;
-    display:grid;
-    grid-template-columns:repeat(2, 1fr);
-    gap:18px;
-    max-width:900px;
-    width:100%;
-  }
-
-  .btn-img {
-    display:block;
-    width:100%;
-    cursor:pointer;
-    transition:transform .3s, filter .3s;
-    filter:drop-shadow(0 0 12px rgba(0,150,255,0.5));
-  }
-  .btn-img:hover {
-    transform:scale(1.05);
-    filter:drop-shadow(0 0 25px rgba(0,200,255,0.9)) brightness(1.15);
-  }
-  .btn-img:active { transform:scale(0.97); }
-
-  @media(max-width:600px){
-    .buttons { grid-template-columns:1fr; }
-    .title { font-size:1.3rem; }
-  }
-
-  /* زر الموسيقى */
-  #musicBtn {
-    position:fixed;
-    bottom:15px; left:15px;
-    width:55px; height:55px;
-    border:none;
-    background:transparent;
-    cursor:pointer;
-    z-index:100;
-    padding:0;
-    transition:transform .3s, filter .3s;
-    filter:drop-shadow(0 0 12px rgba(255,140,0,0.8));
-  }
-  #musicBtn img { width:100%; height:100%; display:block; }
-  #musicBtn:hover { transform:scale(1.12); filter:drop-shadow(0 0 22px rgba(255,170,0,1)); }
-  #musicBtn.playing { animation:spin 3s linear infinite; }
-  @keyframes spin { from{transform:rotate(0);} to{transform:rotate(360deg);} }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a0a00">
+<title>🔥 F.I.R — التسجيل</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <h1 class="title">𝑨𝑳𝑱𝑬𝑺𝑰</h1>
+<!-- خلفية النار المتحركة -->
+<div class="fire-bg"></div>
+<div class="overlay"></div>
 
-  <div class="buttons">
-    <a href="page1.html">
-      <img src="images/blue.png" alt="النقابات والرتب" class="btn-img">
-    </a>
-    <a href="page2.html">
-      <img src="images/green.png" alt="شروط الشرفات" class="btn-img">
-    </a>
-    <a href="page3.html">
-      <img src="images/red.png" alt="قوانين الممالك" class="btn-img">
-    </a>
-    <a href="page4.html">
-      <img src="images/purple.png" alt="الأرقى اللا" class="btn-img">
+<!-- ================= شاشة 1: النموذج ================= -->
+<div id="screen-form" class="screen active">
+  <div class="container">
+
+    <div class="brand">
+      <div class="brand-flame">🔥</div>
+      <h1 class="brand-title">𝑭. 𝑰. 𝑹</h1>
+      <div class="brand-flame">🔥</div>
+    </div>
+
+    <h2 class="welcome-title">
+      🔥 نورت مملكة النار الخاصة بالجيسي 🔥
+    </h2>
+
+    <p class="neon-text">رجاءاً املأ هذه البيانات:</p>
+
+    <form id="register-form" autocomplete="off" novalidate>
+
+      <!-- اللقب -->
+      <div class="field">
+        <label for="nickname">🪪 لقبك أو اسم شخصية أنمي تفضل أن نناديك فيه:</label>
+        <input
+          type="text"
+          id="nickname"
+          name="nickname"
+          maxlength="30"
+          placeholder="اكتب لقبك هنا..."
+          required>
+        <div class="error" id="err-nickname"></div>
+      </div>
+
+      <!-- من طرف مين دخلت -->
+      <div class="field">
+        <label for="referrer">🔰 من طرف مين دخلت؟</label>
+        <input
+          type="text"
+          id="referrer"
+          name="referrer"
+          maxlength="40"
+          placeholder="اكتب اسم الشخص الذي دعاك..."
+          required>
+        <div class="error" id="err-referrer"></div>
+      </div>
+
+      <!-- الجنس -->
+      <div class="field">
+        <label>⚧️ ما جنسك؟</label>
+        <div class="segmented" id="gender-seg">
+          <button type="button" data-value="male">ذكر</button>
+          <button type="button" data-value="female">أنثى</button>
+          <button type="button" data-value="custom">مخصص</button>
+        </div>
+        <input
+          type="text"
+          id="gender-custom"
+          class="hidden"
+          maxlength="20"
+          placeholder="اكتب جنسك المخصص...">
+        <div class="error" id="err-gender"></div>
+      </div>
+
+      <!-- العمر (اختياري) -->
+      <div class="field">
+        <label for="age">🎂 عمرك؟ <span class="optional">(اختياري)</span></label>
+        <input
+          type="number"
+          id="age"
+          name="age"
+          min="5"
+          max="99"
+          placeholder="اتركه فارغاً إذا لا تريد الإجابة"
+          inputmode="numeric">
+        <div class="error" id="err-age"></div>
+      </div>
+
+      <!-- الملاحظة الإلزامية -->
+      <div class="checkbox-field">
+        <input type="checkbox" id="agree" name="agree">
+        <label for="agree">
+          ☑️ ملاحظة: عندما تدخل بياناتك بشكل خاطئ أو مزيف لن تتمكن من تعديلها لاحقاً!
+        </label>
+      </div>
+      <div class="error" id="err-agree"></div>
+
+      <!-- زر التالي -->
+      <button type="submit" class="btn-next" id="btn-submit">
+        <span id="btn-text">التالي ←</span>
+        <span id="btn-spinner" class="spinner hidden"></span>
+      </button>
+
+    </form>
+  </div>
+</div>
+
+<!-- ================= شاشة 2: النجاح ================= -->
+<div id="screen-success" class="screen">
+  <div class="container success-container">
+    <div class="success-icon">✅</div>
+    <h2 class="success-title">تم تسجيلك!</h2>
+    <p class="success-text">
+      أنت الآن في قروب الاستقبال.
+    </p>
+    <p class="success-text">
+      رجاءً اضغط الزر التالي<br>
+      للانتقال إلى القروب الأساسي:
+    </p>
+    <a href="#" id="btn-enter" class="btn-enter" target="_blank" rel="noopener">
+      🟢 الدخول
     </a>
   </div>
+</div>
 
-  <button id="musicBtn" onclick="toggleMusic()">
-    <img src="images/music.png" alt="تشغيل الموسيقى">
-  </button>
+<!-- ================= شاشة 3: الرفض ================= -->
+<div id="screen-denied" class="screen">
+  <div class="container denied-container">
+    <div class="denied-icon">⛔</div>
+    <h2 class="denied-title">صفحة التسجيل هذه ليست مخصصة لك</h2>
+    <p class="denied-text">
+      هذه الصفحة مخصصة فقط للعضو الذي تم عمل Mention له في أمر <code>.جديد</code>
+    </p>
+  </div>
+</div>
 
-  <audio id="bgMusic" loop>
-    <source src="music.mp3" type="audio/mpeg">
-  </audio>
+<!-- ================= شاشة 4: خطأ عام ================= -->
+<div id="screen-error" class="screen">
+  <div class="container denied-container">
+    <div class="denied-icon">⚠️</div>
+    <h2 class="denied-title" id="error-title">حدث خطأ</h2>
+    <p class="denied-text" id="error-text">
+      يرجى المحاولة مرة أخرى.
+    </p>
+  </div>
+</div>
 
-<script>
-  const music = document.getElementById('bgMusic');
-  const btn = document.getElementById('musicBtn');
-  let playing = false;
+<!-- صوت الضغطة -->
+<audio id="click-sound" src="click.mp3" preload="auto"></audio>
 
-  // استرجاع الحالة من الصفحة السابقة (عشان تستمر بين الصفحات)
-  if (sessionStorage.getItem('musicPlaying') === '1') {
-    music.currentTime = parseFloat(sessionStorage.getItem('musicTime') || 0);
-    music.play().then(() => {
-      playing = true;
-      btn.classList.add('playing');
-    }).catch(()=>{});
-  }
-
-  function toggleMusic() {
-    if (playing) {
-      music.pause();
-      btn.classList.remove('playing');
-      sessionStorage.setItem('musicPlaying', '0');
-    } else {
-      music.play().catch(()=>{});
-      btn.classList.add('playing');
-      sessionStorage.setItem('musicPlaying', '1');
-    }
-    playing = !playing;
-  }
-
-  // حفظ الوقت قبل مغادرة الصفحة
-  window.addEventListener('beforeunload', () => {
-    sessionStorage.setItem('musicTime', music.currentTime);
-  });
-
-  // تشغيل تلقائي عند أول ضغطة
-  document.addEventListener('click', function once() {
-    if (!playing) {
-      music.play().then(() => {
-        playing = true;
-        btn.classList.add('playing');
-        sessionStorage.setItem('musicPlaying', '1');
-      }).catch(()=>{});
-    }
-    document.removeEventListener('click', once);
-  }, { once:true });
-</script>
-
+<script src="config.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
