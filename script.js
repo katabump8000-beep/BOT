@@ -1,6 +1,6 @@
 // ============================================
 // F.I.R — مملكة النار
-// منطق صفحة التسجيل
+// منطق صفحة التسجيل — نسخة Multi-Bot
 // ============================================
 
 (function () {
@@ -38,17 +38,15 @@
   // ==========================================
   const state = {
     token: "",
+    apiUrl: "",       // رابط البوت (يُقرأ من URL أو config)
     gender: "",
     submitting: false,
-    hasEnteredOnce: false
+    hasEnteredOnce: false,
+    isRegistered: false
   };
 
   // ==========================================
   // 🎵 صوت الضغطة
-  // ==========================================
-  // فكرة: المتصفحات تمنع تشغيل الصوت قبل أن يتفاعل المستخدم.
-  // الحل: أول ضغطة على أي مكان في الشاشة = تفعيل الصوت.
-  // بعدها كل الضغطات يشتغل صوتها بشكل طبيعي.
   // ==========================================
   let soundUnlocked = false;
 
@@ -72,11 +70,7 @@
 
   function playClick() {
     if (!CONFIG.SOUND_ENABLED || !clickSound) return;
-
-    if (!soundUnlocked) {
-      unlockSound();
-    }
-
+    if (!soundUnlocked) unlockSound();
     try {
       clickSound.currentTime = 0;
       const p = clickSound.play();
@@ -84,7 +78,6 @@
     } catch (_) {}
   }
 
-  // 📳 اهتزاز خفيف
   function vibrate() {
     if (!CONFIG.VIBRATION_ENABLED) return;
     try {
@@ -92,13 +85,11 @@
     } catch (_) {}
   }
 
-  // 🎯 عند ضغط أي زر
   function onAnyTap() {
     playClick();
     vibrate();
   }
 
-  // 🎯 أول ضغطة على أي مكان في الشاشة → تفعيل الصوت
   document.addEventListener("touchstart", unlockSound, { once: true, passive: true });
   document.addEventListener("mousedown",   unlockSound, { once: true });
   document.addEventListener("keydown",     unlockSound, { once: true });
@@ -167,7 +158,7 @@
   });
 
   // ==========================================
-  // 🔍 فحص اللقب أثناء الكتابة (Live check)
+  // 🔍 فحص اللقب أثناء الكتابة
   // ==========================================
   let checkTimeout = null;
   let lastCheckedNick = "";
@@ -192,14 +183,23 @@
   });
 
   // ==========================================
-  // 🌐 الاتصال بالبوت
+  // 🌐 الاتصال بالبوت (Multi-Bot)
   // ==========================================
+  function getApiUrl() {
+    // الأولوية 1: من URL parameter (api=...)
+    if (state.apiUrl) return state.apiUrl.replace(/\/$/, "");
+    // الأولوية 2: من config.js (fallback)
+    if (CONFIG.API_URL) return CONFIG.API_URL.replace(/\/$/, "");
+    return "";
+  }
+
   async function apiCall(endpoint, body) {
-    if (!CONFIG.API_URL) {
+    const baseUrl = getApiUrl();
+    if (!baseUrl) {
       throw new Error("NO_API_URL");
     }
 
-    const url = CONFIG.API_URL.replace(/\/$/, "") + endpoint;
+    const url = baseUrl + endpoint;
 
     const res = await fetch(url, {
       method: "POST",
@@ -235,7 +235,6 @@
     onAnyTap();
     clearAllErrors();
 
-    // ------- فحص الحقول محلياً -------
     const nickname = inputNick.value.trim();
     const referrer = inputRef.value.trim();
     const gender   = getGenderValue();
@@ -280,13 +279,10 @@
 
     if (hasError) {
       const firstError = $(".error.show");
-      if (firstError) {
-        firstError.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+      if (firstError) firstError.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
-    // ------- إرسال للبوت -------
     state.submitting = true;
     btnSubmit.disabled = true;
     btnText.textContent = "جارٍ التحقق...";
@@ -319,15 +315,13 @@
       }
 
       const firstError = $(".error.show");
-      if (firstError) {
-        firstError.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+      if (firstError) firstError.scrollIntoView({ behavior: "smooth", block: "center" });
 
     } catch (err) {
       console.error("[submitForm]", err);
       const msg = String(err && err.message || "");
       if (msg.includes("NO_API_URL")) {
-        setError("agree", "⚠️ لم يتم إعداد رابط البوت بعد.");
+        setError("agree", "⚠️ لم يتم إعداد رابط البوت.");
       } else {
         setError("agree", CONFIG.TEXTS.CONNECTION_ERROR);
       }
@@ -344,8 +338,20 @@
   // ==========================================
   async function init() {
     const params = new URLSearchParams(window.location.search);
+
+    // 1) Token
     state.token = params.get("token") || "";
 
+    // 2) API URL (من الرابط — Multi-Bot)
+    const apiFromUrl = params.get("api") || "";
+    if (apiFromUrl) {
+      state.apiUrl = apiFromUrl;
+      console.log("[flow] Bot API:", state.apiUrl);
+    } else {
+      console.log("[flow] Using fallback API from config.js");
+    }
+
+    // 3) ربط الأزرار
     btnEnter.addEventListener("click", () => {
       onAnyTap();
       state.hasEnteredOnce = true;
@@ -357,46 +363,73 @@
       b.addEventListener("mousedown", onAnyTap);
     });
 
+    // 4) إذا لم يوجد Token → رفض
     if (!state.token || state.token.length < 10) {
       showScreen("denied");
       return;
     }
 
+    // 5) إذا لم يوجد api ولا fallback → رفض
+    if (!getApiUrl()) {
+      showScreen("error");
+      const title = $("#error-title");
+      const text  = $("#error-text");
+      if (title) title.textContent = "رابط غير صالح";
+      if (text)  text.textContent  = "لم يتم تحديد رابط البوت في الرابط.";
+      return;
+    }
+
+    // 6) تحقق من الجلسة
     try {
       const data = await apiCall("/api/flow/check-session", { token: state.token });
 
       if (!data || data.valid !== true) {
         if (data && data.reason === "registered") {
-          const link = data.enterLink || CONFIG.ENTER_LINK || "#";
-          btnEnter.href = link;
-          showScreen("success");
+          // مسجل مسبقاً → شاشة "مسجل بالفعل"
+          state.isRegistered = true;
+          showRegisteredScreen(data);
         } else if (data && data.reason === "not_your_session") {
           showScreen("denied");
-        } else {
+        } else if (data && data.reason === "expired") {
           showScreen("error");
           const title = $("#error-title");
           const text  = $("#error-text");
           if (title) title.textContent = "انتهت صلاحية الرابط";
           if (text)  text.textContent  = "يرجى طلب رابط جديد من المشرف عبر أمر .جديد";
+        } else {
+          showScreen("error");
         }
         return;
       }
 
+      // 7) كل شيء تمام — عرض النموذج
       showScreen("form");
       inputNick.focus();
 
     } catch (err) {
       console.error("[init]", err);
-      const msg = String(err && err.message || "");
-      if (msg.includes("NO_API_URL")) {
-        showScreen("form");
-      } else {
-        showScreen("error");
-        const title = $("#error-title");
-        const text  = $("#error-text");
-        if (title) title.textContent = "تعذّر التحقق من الرابط";
-        if (text)  text.textContent  = CONFIG.TEXTS.CONNECTION_ERROR;
-      }
+      showScreen("error");
+      const title = $("#error-title");
+      const text  = $("#error-text");
+      if (title) title.textContent = "تعذّر التحقق من الرابط";
+      if (text)  text.textContent  = CONFIG.TEXTS.CONNECTION_ERROR;
+    }
+  }
+
+  // ==========================================
+  // 🎉 شاشة "مسجل بالفعل"
+  // ==========================================
+  function showRegisteredScreen(data) {
+    const link = (data && data.enterLink) || CONFIG.ENTER_LINK || "";
+    const el = document.getElementById("screen-registered");
+    if (el) {
+      const btn = el.querySelector("#btn-enter-registered");
+      if (btn && link) btn.href = link;
+      showScreen("registered");
+    } else {
+      // fallback: استعمل شاشة النجاح
+      if (link) btnEnter.href = link;
+      showScreen("success");
     }
   }
 
