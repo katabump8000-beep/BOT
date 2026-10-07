@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1a0a00">
 <title>🔥 F.I.R — التسجيل</title>
-<link rel="stylesheet" href="style.css">
+
+<!-- إصلاح: منع المتصفح من تخزين CSS القديم -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
@@ -14,7 +20,7 @@
 <div class="overlay"></div>
 
 <!-- ================= شاشة 1: النموذج ================= -->
-<div id="screen-form" class="screen active">
+<div id="screen-form" class="screen">
   <div class="container">
 
     <div class="brand">
@@ -31,33 +37,18 @@
 
     <form id="register-form" autocomplete="off" novalidate>
 
-      <!-- اللقب -->
       <div class="field">
         <label for="nickname">🪪 لقبك أو اسم شخصية أنمي تفضل أن نناديك فيه:</label>
-        <input
-          type="text"
-          id="nickname"
-          name="nickname"
-          maxlength="30"
-          placeholder="اكتب لقبك هنا..."
-          required>
+        <input type="text" id="nickname" name="nickname" maxlength="30" placeholder="اكتب لقبك هنا..." required>
         <div class="error" id="err-nickname"></div>
       </div>
 
-      <!-- من طرف مين دخلت -->
       <div class="field">
         <label for="referrer">🔰 من طرف مين دخلت؟</label>
-        <input
-          type="text"
-          id="referrer"
-          name="referrer"
-          maxlength="40"
-          placeholder="اكتب اسم الشخص الذي دعاك..."
-          required>
+        <input type="text" id="referrer" name="referrer" maxlength="40" placeholder="اكتب اسم الشخص الذي دعاك..." required>
         <div class="error" id="err-referrer"></div>
       </div>
 
-      <!-- الجنس -->
       <div class="field">
         <label>⚧️ ما جنسك؟</label>
         <div class="segmented" id="gender-seg">
@@ -65,30 +56,16 @@
           <button type="button" data-value="female">♀️ أنثى</button>
           <button type="button" data-value="custom">🚫 مخصص</button>
         </div>
-        <input
-          type="text"
-          id="gender-custom"
-          class="hidden"
-          maxlength="20"
-          placeholder="اكتب جنسك المخصص...">
+        <input type="text" id="gender-custom" class="hidden" maxlength="20" placeholder="اكتب جنسك المخصص...">
         <div class="error" id="err-gender"></div>
       </div>
 
-      <!-- العمر (اختياري) -->
       <div class="field">
         <label for="age">🎂 عمرك؟ <span class="optional">(اختياري)</span></label>
-        <input
-          type="number"
-          id="age"
-          name="age"
-          min="5"
-          max="99"
-          placeholder="اتركه فارغاً إذا لا تريد الإجابة"
-          inputmode="numeric">
+        <input type="number" id="age" name="age" min="5" max="99" placeholder="اتركه فارغاً إذا لا تريد الإجابة" inputmode="numeric">
         <div class="error" id="err-age"></div>
       </div>
 
-      <!-- الملاحظة الإلزامية -->
       <div class="checkbox-field">
         <input type="checkbox" id="agree" name="agree">
         <label for="agree">
@@ -97,7 +74,6 @@
       </div>
       <div class="error" id="err-agree"></div>
 
-      <!-- زر التالي -->
       <button type="submit" class="btn-next" id="btn-submit">
         <span id="btn-text">التالي ←</span>
         <span id="btn-spinner" class="spinner hidden"></span>
@@ -112,9 +88,7 @@
   <div class="container success-container">
     <div class="success-icon">✅</div>
     <h2 class="success-title">تم تسجيلك!</h2>
-    <p class="success-text">
-      أنت الآن في قروب الاستقبال.
-    </p>
+    <p class="success-text">أنت الآن في قروب الاستقبال.</p>
     <p class="success-text">
       رجاءً اضغط الزر التالي<br>
       للانتقال إلى القروب الأساسي:
@@ -161,16 +135,14 @@
   <div class="container denied-container">
     <div class="denied-icon">⚠️</div>
     <h2 class="denied-title" id="error-title">حدث خطأ</h2>
-    <p class="denied-text" id="error-text">
-      يرجى المحاولة مرة أخرى.
-    </p>
+    <p class="denied-text" id="error-text">يرجى المحاولة مرة أخرى.</p>
   </div>
 </div>
 
 <!-- صوت الضغطة -->
 <audio id="click-sound" src="click.mp3" preload="auto"></audio>
 
-<script src="config.js"></script>
-<script src="script.js"></script>
+<script src="config.js?v=10"></script>
+<script src="script.js?v=10"></script>
 </body>
 </html>
