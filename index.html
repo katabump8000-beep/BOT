@@ -2,142 +2,598 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#1a0a00">
-<title>🔥 F.I.R — التسجيل</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔥 التسجيل - 𝑭. 𝑰. 𝑹</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-<link rel="stylesheet" href="style.css">
+  body {
+    font-family: 'Tajawal', 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+  }
+
+  .card {
+    background: rgba(20, 20, 35, 0.95);
+    border: 2px solid rgba(255, 215, 106, 0.4);
+    border-radius: 20px;
+    padding: 30px 25px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ffd76a, #ff6b6b, #ffd76a);
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 6px;
+    background: linear-gradient(90deg, #ffd76a, #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .sub {
+    text-align: center;
+    color: #ffd76a;
+    font-size: 14px;
+    margin-bottom: 25px;
+  }
+
+  .section {
+    display: none;
+  }
+  .section.active { display: block; }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #ffd76a;
+    font-weight: 600;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 13px 14px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(255, 215, 106, 0.3);
+    border-radius: 10px;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: 15px;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: #ffd76a;
+    background: rgba(0,0,0,0.6);
+    box-shadow: 0 0 0 3px rgba(255, 215, 106, 0.15);
+  }
+
+  input::placeholder { color: rgba(255,255,255,0.4); }
+
+  select option {
+    background: #1a1a2e;
+    color: #fff;
+  }
+
+  button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #ffd76a, #ff6b6b);
+    color: #1a1a2e;
+    font-size: 17px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.15s;
+    font-family: inherit;
+    margin-top: 6px;
+  }
+
+  button:hover:not(:disabled) { transform: scale(1.02); }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .error {
+    background: rgba(255, 107, 107, 0.15);
+    border: 1px solid rgba(255, 107, 107, 0.5);
+    color: #ff9b9b;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    line-height: 1.6;
+    display: none;
+  }
+
+  .error.show { display: block; }
+
+  .success {
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .success .icon {
+    font-size: 70px;
+    margin-bottom: 15px;
+    animation: pop 0.5s ease;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+
+  .success h2 {
+    color: #ffd76a;
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+
+  .success .nick {
+    font-size: 18px;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+
+  .success .nick strong {
+    color: #ffd76a;
+    font-size: 22px;
+  }
+
+  .success a.enter-btn {
+    display: inline-block;
+    padding: 14px 30px;
+    background: linear-gradient(90deg, #ffd76a, #ff6b6b);
+    color: #1a1a2e;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 16px;
+    margin-top: 10px;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 40px 0;
+    color: #ffd76a;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 215, 106, 0.2);
+    border-top-color: #ffd76a;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .footnote {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.6;
+  }
+
+  .footnote .brand {
+    color: #ffd76a;
+    font-weight: bold;
+  }
+
+  .api-status {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+  }
+  .api-status.ok::before { content: '🟢 '; }
+  .api-status.err::before { content: '🔴 '; }
+</style>
 </head>
 <body>
 
-<!-- خلفية النار المتحركة -->
-<div class="fire-bg"></div>
-<div class="overlay"></div>
+<div class="card">
+  <div class="api-status" id="apiStatus">جار الاتصال...</div>
 
-<!-- ================= شاشة 1: النموذج ================= -->
-<div id="screen-form" class="screen">
-  <div class="container">
+  <h1>🔥 𝑭. 𝑰. 𝑹 🔥</h1>
+  <div class="sub">🔥 نورت مملكة النار الخاصة بالجيسي 🔥</div>
 
-    <div class="brand">
-      <div class="brand-flame">🔥</div>
-      <h1 class="brand-title">𝑭. 𝑰. 𝑹</h1>
-      <div class="brand-flame">🔥</div>
+  <!-- ============ شاشة التحميل ============ -->
+  <div class="section" id="sec-loading">
+    <div class="loading">
+      <div class="spinner"></div>
+      <div>جار التحقق من الرابط...</div>
     </div>
+  </div>
 
-    <h2 class="welcome-title">
-      🔥 نورت مملكة النار الخاصة بالجيسي 🔥
-    </h2>
+  <!-- ============ خطأ ============ -->
+  <div class="section" id="sec-error">
+    <div class="error show" id="errMsg">حدث خطأ ما.</div>
+  </div>
 
-    <p class="neon-text">رجاءاً املأ هذه البيانات:</p>
+  <!-- ============ التسجيل ============ -->
+  <div class="section" id="sec-form">
+    <div class="error" id="formErr"></div>
 
-    <form id="register-form" autocomplete="off" novalidate>
+    <label for="nickname">لقبك أو اسم شخصية أنمي تفضل أن نناديك فيه</label>
+    <input type="text" id="nickname" placeholder="مثال: كاكاشي" maxlength="30" autocomplete="off">
+    <div id="nickCheck" style="font-size:12px; margin-top:-10px; margin-bottom:10px; min-height:16px;"></div>
 
-      <div class="field">
-        <label for="nickname">🪪 لقبك أو اسم شخصية أنمي تفضل أن نناديك فيه:</label>
-        <input type="text" id="nickname" name="nickname" maxlength="30" placeholder="اكتب لقبك هنا..." required>
-        <div class="error" id="err-nickname"></div>
+    <label for="referrer">من طرف مين دخلت؟</label>
+    <input type="text" id="referrer" placeholder="اكتب اسم من دعاك" maxlength="40" autocomplete="off">
+
+    <label for="gender">ما جنسك؟</label>
+    <select id="gender">
+      <option value="">— اختر —</option>
+      <option value="ذكر">ذكر</option>
+      <option value="أنثى">أنثى</option>
+      <option value="مخصص">مخصص</option>
+    </select>
+
+    <label for="age">عمرك؟ (اختياري)</label>
+    <input type="number" id="age" placeholder="مثال: 18" min="5" max="99" inputmode="numeric">
+
+    <label style="display:flex; align-items:flex-start; gap:8px; color:#ffd76a; margin-top:12px; cursor:pointer;">
+      <input type="checkbox" id="ack" style="width:auto; margin:4px 0 0 0; transform:scale(1.2);">
+      <span style="font-size:13px; line-height:1.5;">
+        أقرّ بالملاحظة أدناه<br>
+        <span style="color:#ff9b9b; font-size:12px;">
+          عندما تدخل بياناتك بشكل خاطئ أو مزيف لن تتمكن من تعديلها لاحقًا!
+        </span>
+      </span>
+    </label>
+
+    <button id="submitBtn" style="margin-top:20px;">🔥 التالي</button>
+  </div>
+
+  <!-- ============ نجاح ============ -->
+  <div class="section" id="sec-success">
+    <div class="success">
+      <div class="icon">✅</div>
+      <h2>تم تسجيلك بنجاح!</h2>
+      <div class="nick">لقبك: <strong id="okNickname">—</strong></div>
+      <a href="#" id="enterBtn" class="enter-btn" target="_blank" style="display:none;">
+        🟢 الدخول إلى القروب الأساسي
+      </a>
+      <div id="noLink" style="display:none; color:#ff9b9b; font-size:13px; margin-top:15px;">
+        ⚠️ لم يُحدَّد رابط الدخول بعد.<br>رجاءً تواصل مع المشرف.
       </div>
+    </div>
+  </div>
 
-      <div class="field">
-        <label for="referrer">🔰 من طرف مين دخلت؟</label>
-        <input type="text" id="referrer" name="referrer" maxlength="40" placeholder="اكتب اسم الشخص الذي دعاك..." required>
-        <div class="error" id="err-referrer"></div>
+  <!-- ============ مسجل مسبقاً ============ -->
+  <div class="section" id="sec-registered">
+    <div class="success">
+      <div class="icon">👤</div>
+      <h2>أنت مسجل بالفعل</h2>
+      <div class="nick" style="font-size:15px; color:#ffd76a; margin-top:12px;">
+        مسجل في مملكة النار بالفعل
       </div>
+      <a href="#" id="enterBtn2" class="enter-btn" target="_blank" style="display:none;">
+        🟢 الدخول إلى القروب الأساسي
+      </a>
+    </div>
+  </div>
 
-      <div class="field">
-        <label>⚧️ ما جنسك؟</label>
-        <div class="segmented" id="gender-seg">
-          <button type="button" data-value="male">♂️ ذكر</button>
-          <button type="button" data-value="female">♀️ أنثى</button>
-          <button type="button" data-value="custom">🚫 مخصص</button>
-        </div>
-        <input type="text" id="gender-custom" class="hidden" maxlength="20" placeholder="اكتب جنسك المخصص...">
-        <div class="error" id="err-gender"></div>
-      </div>
-
-      <div class="field">
-        <label for="age">🎂 عمرك؟ <span class="optional">(اختياري)</span></label>
-        <input type="number" id="age" name="age" min="5" max="99" placeholder="اتركه فارغاً إذا لا تريد الإجابة" inputmode="numeric">
-        <div class="error" id="err-age"></div>
-      </div>
-
-      <div class="checkbox-field">
-        <input type="checkbox" id="agree" name="agree">
-        <label for="agree">
-          ☑️ ملاحظة: عندما تدخل بياناتك بشكل خاطئ أو مزيف لن تتمكن من تعديلها لاحقاً!
-        </label>
-      </div>
-      <div class="error" id="err-agree"></div>
-
-      <button type="submit" class="btn-next" id="btn-submit">
-        <span id="btn-text">التالي ←</span>
-        <span id="btn-spinner" class="spinner hidden"></span>
-      </button>
-
-    </form>
+  <div class="footnote">
+    <span class="brand">𝑭. 𝑰. 𝑹</span> — ALJESAT BOT
   </div>
 </div>
 
-<!-- ================= شاشة 2: النجاح ================= -->
-<div id="screen-success" class="screen">
-  <div class="container success-container">
-    <div class="success-icon">✅</div>
-    <h2 class="success-title">تم تسجيلك!</h2>
-    <p class="success-text">أنت الآن في قروب الاستقبال.</p>
-    <p class="success-text">
-      رجاءً اضغط الزر التالي<br>
-      للانتقال إلى القروب الأساسي:
-    </p>
-    <a href="#" id="btn-enter" class="btn-enter" target="_blank" rel="noopener">
-      🟢 الدخول
-    </a>
-  </div>
-</div>
+<script>
+(function () {
+  "use strict";
 
-<!-- ================= شاشة 3: مسجل بالفعل ================= -->
-<div id="screen-registered" class="screen">
-  <div class="container registered-container">
-    <div class="registered-icon">👤</div>
-    <h2 class="registered-title">أنت مسجل بالفعل!</h2>
-    <p class="registered-text">
-      عزيزي/تي<br>
-      لقد قمت بالتسجيل في مملكة النار من قبل.<br>
-      لا يمكنك التسجيل مرة أخرى.
-    </p>
-    <p class="registered-text">
-      إذا كنت تريد الدخول للقروب الأساسي،<br>
-      اضغط الزر التالي:
-    </p>
-    <a href="#" id="btn-enter-registered" class="btn-enter" target="_blank" rel="noopener">
-      🟢 الدخول
-    </a>
-  </div>
-</div>
+  // ============================================================
+  // 1) قراءة البارامترات من الرابط
+  // ============================================================
+  const params = new URLSearchParams(location.search);
+  const token        = (params.get("token") || "").trim();
+  const bindingToken = (params.get("binding") || "").trim();
+  const apiBase      = (params.get("api") || "").trim().replace(/\/$/, "");
 
-<!-- ================= شاشة 4: الرفض ================= -->
-<div id="screen-denied" class="screen">
-  <div class="container denied-container">
-    <div class="denied-icon">⛔</div>
-    <h2 class="denied-title">صفحة التسجيل هذه ليست مخصصة لك</h2>
-    <p class="denied-text">
-      هذه الصفحة مخصصة فقط للعضو الذي تم عمل Mention له في أمر <code>.جديد</code>
-    </p>
-  </div>
-</div>
+  // ============================================================
+  // 2) مراجع DOM
+  // ============================================================
+  const $ = (id) => document.getElementById(id);
+  const sections = {
+    loading:    $("sec-loading"),
+    error:      $("sec-error"),
+    form:       $("sec-form"),
+    success:    $("sec-success"),
+    registered: $("sec-registered")
+  };
+  const apiStatus = $("apiStatus");
 
-<!-- ================= شاشة 5: خطأ عام ================= -->
-<div id="screen-error" class="screen">
-  <div class="container denied-container">
-    <div class="denied-icon">⚠️</div>
-    <h2 class="denied-title" id="error-title">حدث خطأ</h2>
-    <p class="denied-text" id="error-text">يرجى المحاولة مرة أخرى.</p>
-  </div>
-</div>
+  function showSection(name) {
+    for (const k of Object.keys(sections)) sections[k].classList.remove("active");
+    if (sections[name]) sections[name].classList.add("active");
+  }
 
-<!-- صوت الضغطة -->
-<audio id="click-sound" src="click.mp3" preload="auto"></audio>
+  function showError(msg) {
+    $("errMsg").textContent = msg;
+    showSection("error");
+  }
 
-<script src="config.js"></script>
-<script src="script.js"></script>
+  function showFormError(msg) {
+    const e = $("formErr");
+    if (msg) { e.textContent = msg; e.classList.add("show"); }
+    else { e.textContent = ""; e.classList.remove("show"); }
+  }
+
+  // ============================================================
+  // 3) استدعاء الـ API (fetch + timeout)
+  // ============================================================
+  async function apiCall(path, body, timeoutMs = 15000) {
+    if (!apiBase) throw new Error("لا يوجد api في الرابط");
+    const url = apiBase + path;
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: ctrl.signal
+      });
+      const data = await res.json().catch(() => ({}));
+      return { status: res.status, data };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // ============================================================
+  // 4) فحص الرابط عند التحميل
+  // ============================================================
+  async function init() {
+    if (!token) {
+      showError("⚠️ الرابط غير صالح — لا يوجد token.\nاطلب من المشرف رابطاً جديداً عبر أمر .جديد");
+      return;
+    }
+    if (!bindingToken) {
+      showError("⚠️ الرابط قديم أو ناقص (لا يوجد binding).\nاطلب من المشرف رابطاً جديداً.");
+      return;
+    }
+    if (!apiBase) {
+      showError("⚠️ رابط البوت (api) غير موجود في الرابط.\nأبلغ المشرف.");
+      return;
+    }
+
+    apiStatus.textContent = "جار الاتصال بالبوت...";
+    apiStatus.className = "api-status";
+
+    try {
+      const { status, data } = await apiCall("/api/flow/check-session", {
+        token, bindingToken
+      });
+
+      // 🔴 الرابط ليس لصاحب الجلسة
+      if (status === 403 || data?.reason === "not_yours") {
+        apiStatus.textContent = "رابط ليس لك";
+        apiStatus.className = "api-status err";
+        showError("⛔ هذا الرابط ليس مخصصاً لك!\n\nكل رابط يُرسل لعضو واحد فقط.\nاطلب من المشرف عمل .جديد لك شخصياً.");
+        return;
+      }
+
+      // 🔴 جلسة منتهية
+      if (!data?.ok || data.valid === false && data.reason === "expired") {
+        apiStatus.textContent = "منتهي";
+        apiStatus.className = "api-status err";
+        showError("⌛ انتهت صلاحية الرابط.\nاطلب من المشرف رابطاً جديداً عبر أمر .جديد");
+        return;
+      }
+
+      // 🟡 مسجل مسبقاً
+      if (data.valid === false && data.reason === "registered") {
+        apiStatus.textContent = "متصل";
+        apiStatus.className = "api-status ok";
+        if (data.enterLink) {
+          $("enterBtn2").href = data.enterLink;
+          $("enterBtn2").style.display = "inline-block";
+        }
+        showSection("registered");
+        return;
+      }
+
+      // 🟢 جاهز للتسجيل
+      if (data.valid === true) {
+        apiStatus.textContent = "متصل";
+        apiStatus.className = "api-status ok";
+        showSection("form");
+        return;
+      }
+
+      // حالة غير معروفة
+      apiStatus.textContent = "خطأ";
+      apiStatus.className = "api-status err";
+      showError("⚠️ رد غير متوقع من البوت.\nحاول لاحقاً أو اطلب رابطاً جديداً.");
+    } catch (e) {
+      apiStatus.textContent = "خطأ في الاتصال";
+      apiStatus.className = "api-status err";
+      showError("⚠️ تعذّر الاتصال بالبوت.\n" + (e?.message || "تحقق من اتصالك بالإنترنت."));
+    }
+  }
+
+  // ============================================================
+  // 5) فحص اللقب أثناء الكتابة (debounced)
+  // ============================================================
+  let nickTimer = null;
+  let nickOk = false;
+
+  const nickInput = $("nickname");
+  const nickCheck = $("nickCheck");
+
+  nickInput.addEventListener("input", () => {
+    const v = nickInput.value.trim();
+    nickCheck.textContent = "";
+    nickOk = false;
+
+    if (v.length < 2) return;
+
+    clearTimeout(nickTimer);
+    nickTimer = setTimeout(async () => {
+      nickCheck.textContent = "⏳ جار التحقق...";
+      nickCheck.style.color = "#ffd76a";
+
+      try {
+        const { data } = await apiCall("/api/flow/check-nickname", {
+          token, bindingToken, nickname: v
+        });
+
+        if (data?.taken) {
+          nickCheck.textContent = "❌ هذا اللقب مأخوذ — اختر لقباً آخر";
+          nickCheck.style.color = "#ff9b9b";
+          nickOk = false;
+        } else {
+          nickCheck.textContent = "✅ اللقب متاح";
+          nickCheck.style.color = "#7bff9b";
+          nickOk = true;
+        }
+      } catch (_) {
+        nickCheck.textContent = "";
+      }
+    }, 500);
+  });
+
+  // ============================================================
+  // 6) إرسال النموذج
+  // ============================================================
+  const submitBtn = $("submitBtn");
+
+  submitBtn.addEventListener("click", async () => {
+    showFormError("");
+
+    const nickname = nickInput.value.trim();
+    const referrer = $("referrer").value.trim();
+    const gender   = $("gender").value;
+    const ageRaw   = $("age").value.trim();
+    const ack      = $("ack").checked;
+
+    // تحقق محلي
+    if (nickname.length < 2)  return showFormError("⚠️ يرجى كتابة لقب من حرفين على الأقل.");
+    if (nickname.length > 30) return showFormError("⚠️ اللقب طويل جداً (30 حرفاً كحد أقصى).");
+    if (nickOk === false)     return showFormError("❌ اللقب مأخوذ — اختر لقباً آخر.");
+    if (referrer.length < 2)  return showFormError("⚠️ يرجى كتابة من طرف من دخلت.");
+    if (referrer.length > 40) return showFormError("⚠️ الاسم طويل جداً (40 حرفاً كحد أقصى).");
+    if (!gender)              return showFormError("⚠️ يرجى اختيار جنسك.");
+    if (!ack)                 return showFormError("⚠️ يجب تحديد الملاحظة (☑) قبل المتابعة.");
+
+    let age = null;
+    if (ageRaw !== "") {
+      const n = parseInt(ageRaw, 10);
+      if (!Number.isFinite(n) || n < 5 || n > 99) {
+        return showFormError("⚠️ العمر يجب أن يكون بين 5 و 99، أو اتركه فارغاً.");
+      }
+      age = n;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "⏳ جار الإرسال...";
+
+    try {
+      const { status, data } = await apiCall("/api/flow/submit", {
+        token, bindingToken, nickname, referrer, gender, age
+      });
+
+      // ⛔ ليس لك
+      if (status === 403) {
+        showFormError("⛔ " + (data?.error || "هذا الرابط ليس مخصصاً لك."));
+        return;
+      }
+
+      // ❌ أخطاء حقول
+      if (data?.errors && typeof data.errors === "object") {
+        const first = Object.values(data.errors)[0];
+        showFormError(first || "⚠️ تحقق من البيانات.");
+        return;
+      }
+
+      // ❌ خطأ عام
+      if (!data?.ok) {
+        showFormError(data?.error || "⚠️ تعذّر إكمال التسجيل. حاول مجدداً.");
+        return;
+      }
+
+      // 🎉 نجاح
+      $("okNickname").textContent = data.nickname || nickname;
+
+      if (data.enterLink) {
+        $("enterBtn").href = data.enterLink;
+        $("enterBtn").style.display = "inline-block";
+        $("noLink").style.display = "none";
+      } else {
+        $("enterBtn").style.display = "none";
+        $("noLink").style.display = "block";
+      }
+
+      showSection("success");
+    } catch (e) {
+      showFormError("⚠️ تعذّر الاتصال بالبوت: " + (e?.message || "تحقق من الإنترنت."));
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "🔥 التالي";
+    }
+  });
+
+  // ============================================================
+  // 7) Enter = إرسال
+  // ============================================================
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && sections.form.classList.contains("active") && !submitBtn.disabled) {
+      ev.preventDefault();
+      submitBtn.click();
+    }
+  });
+
+  // ============================================================
+  // 8) تشغيل
+  // ============================================================
+  init();
+
+})();
+</script>
+
 </body>
-</html>
+  </html>
