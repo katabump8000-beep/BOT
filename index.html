@@ -571,7 +571,7 @@
 <div id="denyWrap">
   <div class="deny-content">
     <div class="deny-icon">❌</div>
-    <div class="deny-text">عذراً 🚫<br>أنت لست العضو الجديد<br>المقصود تسجيله</div>
+    <div class="deny-text">عذراً 🚫<br>هذه الصفحة ليست مقصودة لك<br>أنت لست العضو المقصود تسجيله</div>
     <div class="deny-sub">إذا كنت أنت العضو المقصود،<br>اضغط «التالي» في القروب مرة أخرى.</div>
   </div>
 </div>
@@ -668,7 +668,21 @@
 
   var code = getParam("c");
   var api  = (getParam("api") || "").replace(/\/+$/, "");
-  if (!api && /railway\.app$|\.up\.railway\.app$/.test(window.location.hostname)) api = window.location.origin;
+  if (!api && /railway\.app$/.test(window.location.hostname)) api = window.location.origin;
+
+  // 🔒 لا نرسل أي بيانات إلا لسيرفر موثوق (يمنع روابط مزيّفة تشير لسيرفر المهاجم).
+  // لو استعملت دومين خاصاً أضفه هنا مثل: "bot.example.com"
+  var TRUSTED_HOSTS = [];
+  function apiTrusted(u) {
+    var m = /^https:\/\/([^\/:?#]+)(?::\d+)?$/i.exec(u || "");
+    if (!m) return false;
+    var h = m[1].toLowerCase();
+    if (/\.railway\.app$/.test(h)) return true;
+    if (h === window.location.hostname.toLowerCase()) return true;
+    for (var i = 0; i < TRUSTED_HOSTS.length; i++) if (TRUSTED_HOSTS[i] === h) return true;
+    return false;
+  }
+  if (!apiTrusted(api)) api = "";
 
   // بصمة المتصفح (لقفل الرابط على أول جهاز يفتحه)
   var dev = "";
@@ -751,6 +765,17 @@
     } catch (e) { finish(e, 0, null); }
   }
 
+  function esc(t) {
+    return String(t == null ? "" : t)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/\n/g, "<br>");
+  }
+
+  // 🔤 اللقب: حروف عربية فقط (بدون تشكيل/تطويل/زخرفة/أرقام/رموز/إيموجي)
+  var ARABIC_NICK = /^[\u0621-\u063A\u0641-\u064A]+( [\u0621-\u063A\u0641-\u064A]+)*$/;
+  var NICK_MSG = "⚠️ اللقب بالحروف العربية فقط<br>بدون زخرفة أو تشكيل أو أرقام أو رموز أو إيموجي.";
+  function cleanNick(v) { return String(v || "").replace(/^\s+|\s+$/g, "").replace(/\s+/g, " "); }
+
   // ---------- حالات العرض ----------
   function showStatus(icon, text, linkHref) {
     loadingBox.className = "";
@@ -822,13 +847,20 @@
   var nickTimer = null;
   nickInput.addEventListener("input", function () {
     clearTimeout(nickTimer);
-    var v = nickInput.value.replace(/^\s+|\s+$/g, "");
+    var v = cleanNick(nickInput.value);
+    if (v.length < 1) { nickCheck.innerHTML = ""; return; }
+    if (!ARABIC_NICK.test(v)) {
+      nickCheck.style.color = "#ff6b6b";
+      nickCheck.innerHTML = "❌ حروف عربية فقط (بدون زخرفة أو رموز أو أرقام)";
+      return;
+    }
     if (v.length < 2) { nickCheck.innerHTML = ""; return; }
     nickTimer = setTimeout(function () {
       post("/api/flow/check-nickname", { code: code, dev: dev, nickname: v }, function (err, status, d) {
         if (err || !d) return;
         if (status === 403) return showDeny();
-        if (d.taken) { nickCheck.style.color = "#ff6b6b"; nickCheck.innerHTML = "❌ هذا اللقب مأخوذ"; }
+        if (d.invalid) { nickCheck.style.color = "#ff6b6b"; nickCheck.innerHTML = "❌ حروف عربية فقط (بدون زخرفة أو رموز أو أرقام)"; }
+        else if (d.taken) { nickCheck.style.color = "#ff6b6b"; nickCheck.innerHTML = "❌ هذا اللقب مأخوذ"; }
         else { nickCheck.style.color = "#4ade80"; nickCheck.innerHTML = "✅ اللقب متاح"; }
       }, 8000);
     }, 500);
@@ -842,11 +874,12 @@
 
   // ---------- الإرسال ----------
   submitBtn.addEventListener("click", function () {
-    var nickname = nickInput.value.replace(/^\s+|\s+$/g, "");
+    var nickname = cleanNick(nickInput.value);
     var referrer = refInput.value.replace(/^\s+|\s+$/g, "");
     var gender = genderInput.value;
 
     if (nickname.length < 2) return showError("⚠️ اكتب لقباً من حرفين على الأقل.");
+    if (!ARABIC_NICK.test(nickname)) return showError(NICK_MSG);
     if (referrer.length < 2) return showError("⚠️ اكتب من طرف من دخلت.");
     if (!gender) return showError("⚠️ اختر جنسك.");
 
@@ -872,9 +905,9 @@
 
       if (d.errors) {
         var first = d.errors.nickname || d.errors.referrer || d.errors.gender || d.errors.age;
-        return showError(String(first || "⚠️ تحقق من البيانات.").replace(/\n/g, "<br>"));
+        return showError(esc(first || "⚠️ تحقق من البيانات."));
       }
-      showError(String(d.error || "⚠️ حدث خطأ.").replace(/\n/g, "<br>"));
+      showError(esc(d.error || "⚠️ حدث خطأ."));
     }, 25000);
   }, false);
 
