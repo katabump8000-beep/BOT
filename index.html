@@ -2,7 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
 <title>🔥 مملكة النار 🔥</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -18,49 +20,17 @@
     -webkit-user-select: none;
   }
 
-  /* ============ فيديو المقدمة ============ */
-  #introWrap {
-    position: fixed;
-    inset: 0;
-    background: #000;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 1s ease;
-  }
-  #introWrap.fade { opacity: 0; pointer-events: none; }
-
-  #introVideo {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-  }
-
-  #sparks {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 2;
-  }
-
   /* ============ صفحة التسجيل ============ */
   #formWrap {
     position: fixed;
-    inset: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: radial-gradient(circle at 50% 30%, #1a0f0a 0%, #0a0505 70%, #000 100%);
-    display: none;
+    display: block;
     overflow-y: auto;
     padding: 30px 20px 60px;
     z-index: 100;
   }
-  #formWrap.show {
-    display: block;
-    animation: formIn 1.2s cubic-bezier(0.19, 1, 0.22, 1);
-  }
+  #formWrap.show { display: block; }
   @keyframes formIn {
     from { opacity: 0; transform: scale(1.08) translateY(20px); filter: blur(8px); }
     to   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
@@ -69,7 +39,7 @@
   #formWrap::before {
     content: '';
     position: fixed;
-    inset: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background:
       radial-gradient(circle at 20% 80%, rgba(255,80,0,0.08) 0%, transparent 50%),
       radial-gradient(circle at 80% 20%, rgba(255,150,0,0.06) 0%, transparent 50%);
@@ -180,7 +150,7 @@
   .field-inner::after {
     content: '';
     position: absolute;
-    inset: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: linear-gradient(90deg, transparent, rgba(255,150,0,0.06), transparent);
     animation: shine 3s linear infinite;
   }
@@ -391,7 +361,7 @@
   /* ============ شاشة الرفض ============ */
   #denyWrap {
     position: fixed;
-    inset: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: radial-gradient(circle, #1a0000, #000);
     display: none;
     align-items: center;
@@ -434,7 +404,7 @@
   /* ============ شاشة النجاح ============ */
   #successWrap {
     position: fixed;
-    inset: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: #000;
     display: none;
     align-items: center;
@@ -447,7 +417,7 @@
 
   #successSparks {
     position: absolute;
-    inset: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     pointer-events: none;
   }
 
@@ -521,7 +491,7 @@
 
   #greenOverlay {
     position: absolute;
-    inset: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: radial-gradient(circle at 50% 50%, #0d2a15, #041008);
     opacity: 0;
     transition: opacity 1.5s ease;
@@ -541,63 +511,79 @@
     pointer-events: none;
     font-style: italic;
   }
-  #verifyBox { display: none; text-align: center; padding: 10px 6px 4px; }
-  #verifyBox.show { display: block; }
-  #verifyBox .v-title { color: #ffa94d; font-size: 17px; margin-bottom: 14px; line-height: 1.8; }
-  #verifyBox .v-code {
-    font-size: 54px; font-weight: bold; letter-spacing: 12px; direction: ltr;
-    color: #fff; text-shadow: 0 0 18px #ff6a00, 0 0 36px #ff3d00;
-    background: rgba(0,0,0,.45); border: 2px solid #ff6a00; border-radius: 14px;
-    padding: 12px 8px 12px 20px; margin: 8px auto 14px; max-width: 280px;
+
+  /* ============ كلمات النجاح (كلمة كاملة تنزل مع صوت) ============ */
+  .word-stage {
+    position: relative; z-index: 2; text-align: center;
+    display: block; width: 100%; padding: 0 16px;
   }
-  #verifyBox .v-cmd { color: #ddd; font-size: 15px; line-height: 1.9; }
-  #verifyBox .v-cmd b { color: #4ade80; direction: ltr; unicode-bidi: embed; }
-  #verifyBox .v-wait { margin-top: 14px; color: #aaa; font-size: 13px; }
+  .word {
+    display: block;
+    font-size: 54px; font-weight: 900; line-height: 1.25;
+    color: #ff8c00;
+    text-shadow: 0 0 30px #ff6b00, 0 0 60px #ff3300;
+    opacity: 0;
+    -webkit-transform: translateY(-140px) scale(1.7);
+    transform: translateY(-140px) scale(1.7);
+    -webkit-transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    margin: 6px 0;
+    word-break: break-word;
+  }
+  .word.nick { color: #ffd76a; text-shadow: 0 0 30px #ff9d00, 0 0 70px #ff5500; }
+  .word.fire { color: #ff3b1d; font-size: 64px; }
+  .word.in { opacity: 1; -webkit-transform: translateY(0) scale(1); transform: translateY(0) scale(1); }
+
+  #successWrap { overflow: hidden; }
+
+  /* ============ بطاقة الحالة (انتهى / مسجل / خطأ اتصال) ============ */
+  #statusBox { display: none; text-align: center; padding: 40px 10px; }
+  #statusBox.show { display: block; }
+  #statusBox .s-icon { font-size: 64px; margin-bottom: 14px; }
+  #statusBox .s-text { font-size: 18px; line-height: 1.9; color: #ffd0a0; font-weight: 700; }
+  #statusBox a.s-btn {
+    display: inline-block; margin-top: 22px; padding: 13px 34px; border-radius: 12px;
+    background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; text-decoration: none; font-weight: 900;
+  }
+
+  /* شاشة الرفض: أحمر أقوى */
+  #denyWrap .deny-sub { margin-top: 14px; color: #ff9b9b; font-size: 15px; line-height: 1.8; }
 </style>
 </head>
 <body>
 
-<!-- صوتيات -->
-<audio id="audNort"    src="nort.mp3"   preload="auto"></audio>
-<audio id="audLakab"   src="lakab.mp3"  preload="auto"></audio>
-<audio id="audTaraf"   src="taraf.mp3"  preload="auto"></audio>
-<audio id="audOmr"     src="omr.mp3"    preload="auto"></audio>
-<audio id="audFf"      src="ff.mp3"     preload="auto"></audio>
-<audio id="audTek"     src="tek.mp3"    preload="auto"></audio>
-<audio id="audMusic"   src="music.mp3"  preload="auto" loop></audio>
+<noscript>
+  <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:#000;color:#ffb36b;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;z-index:99999;font-size:18px;line-height:2;">
+    🔥 مملكة النار 🔥<br>فعّل JavaScript في متصفحك لإكمال التسجيل.
+  </div>
+</noscript>
 
-<!-- فيديو المقدمة -->
-<div id="introWrap">
-  <video id="introVideo" playsinline muted preload="auto" autoplay>
-    <source src="intro.mp4"  type="video/mp4">
-  </video>
-  <canvas id="sparks"></canvas>
-</div>
+<audio id="audNort"  src="nort.mp3"  preload="auto"></audio>
+<audio id="audLakab" src="lakab.mp3" preload="auto"></audio>
+<audio id="audTaraf" src="taraf.mp3" preload="auto"></audio>
+<audio id="audOmr"   src="omr.mp3"   preload="auto"></audio>
+<audio id="audFf"    src="ff.mp3"    preload="auto"></audio>
+<audio id="audTek"   src="tek.mp3"   preload="auto"></audio>
+<audio id="audMusic" preload="none" loop></audio>
 
-<!-- زر كتم الموسيقى فقط -->
 <button id="muteBtn" title="كتم/تشغيل الموسيقى">🔊</button>
 
-<!-- شاشة الرفض -->
 <div id="denyWrap">
   <div class="deny-content">
     <div class="deny-icon">❌</div>
-    <div class="deny-text">
-      هذه الصفحة مخصصة<br>للعضو الممنشن له ⛔
-    </div>
+    <div class="deny-text">عذراً 🚫<br>أنت لست العضو الجديد<br>المقصود تسجيله</div>
+    <div class="deny-sub">إذا كنت أنت العضو المقصود،<br>اضغط «التالي» في القروب مرة أخرى.</div>
   </div>
 </div>
 
-<!-- شاشة النجاح -->
 <div id="successWrap">
   <div id="greenOverlay"></div>
   <canvas id="successSparks"></canvas>
-  <div class="success-letters" id="successLetters"></div>
-  <div id="successCaption">👑 اللقب نورت مملكة النار 🔥</div>
-  <a href="#" id="enterBtn" target="_blank">🟢 الدخول</a>
+  <div class="word-stage" id="wordStage"></div>
+  <a href="#" id="enterBtn" target="_blank" rel="noopener">🟢 الدخول</a>
 </div>
 
-<!-- صفحة التسجيل -->
-<div id="formWrap">
+<div id="formWrap" class="show">
   <div class="container">
 
     <div class="header">
@@ -613,17 +599,15 @@
       <div style="margin-top:15px; color:#ffa94d;">جار التحقق من الرابط...</div>
     </div>
 
+    <div id="statusBox">
+      <div class="s-icon" id="statusIcon">⌛</div>
+      <div class="s-text" id="statusText"></div>
+      <a href="#" class="s-btn" id="statusBtn" style="display:none;" target="_blank" rel="noopener">🟢 الدخول</a>
+    </div>
+
     <div id="formContent" style="display:none;">
       <div id="errBox"></div>
 
-      <div id="verifyBox">
-        <div class="v-title">🔐 للتأكد أنك أنت صاحب الرابط<br>اكتب هذا الأمر في القروب:</div>
-        <div class="v-code" id="vCode">----</div>
-        <div class="v-cmd">اكتب في القروب:<br><b id="vCmd">.تحقق ----</b></div>
-        <div class="v-wait">⏳ بانتظار تأكيدك... تنتقل الصفحة تلقائياً</div>
-      </div>
-
-      <div id="formFields" style="display:none;">
       <div class="lava-border" id="lavaBorder">
         <div class="field-inner">
           <div class="field">
@@ -656,8 +640,7 @@
         <div>انا مسلم ولا اعبد الا الخالق الاحد (الله)</div>
       </div>
 
-      <button id="submitBtn">🔥 التالي</button>
-      </div>
+      <button id="submitBtn" type="button">🔥 التالي</button>
     </div>
 
   </div>
@@ -669,549 +652,313 @@
 (function () {
   "use strict";
 
-  const params = new URLSearchParams(location.search);
-  const token        = (params.get("token") || "").trim();
-  const bindingToken = (params.get("binding") || "").trim();
-  const apiBase      = (params.get("api") || "").trim().replace(/\/$/, "");
+  function $(id) { return document.getElementById(id); }
 
-  const $ = (id) => document.getElementById(id);
-  const introWrap      = $("introWrap");
-  const introVideo     = $("introVideo");
-  const sparks         = $("sparks");
-  const formWrap       = $("formWrap");
-  const formContent    = $("formContent");
-  const loadingBox     = $("loadingBox");
-  const errBox         = $("errBox");
-  const lavaBorder     = $("lavaBorder");
-  const muslimRow      = $("muslimRow");
-  const submitBtn      = $("submitBtn");
-  const verifyBox      = $("verifyBox");
-  const formFields     = $("formFields");
-  const vCode          = $("vCode");
-  const vCmd           = $("vCmd");
-  const muteBtn        = $("muteBtn");
+  // ---------- معاملات الرابط ----------
+  function getParam(name) {
+    var q = (window.location.search || "").replace(/^\?/, "").split("&");
+    for (var i = 0; i < q.length; i++) {
+      var kv = q[i].split("=");
+      if (decodeURIComponent(kv[0] || "") === name) {
+        try { return decodeURIComponent((kv[1] || "").replace(/\+/g, " ")); } catch (e) { return kv[1] || ""; }
+      }
+    }
+    return "";
+  }
 
-  const nickInput      = $("nickname");
-  const refInput       = $("referrer");
-  const genderInput    = $("gender");
-  const ageInput       = $("age");
-  const nickCheck      = $("nickCheck");
+  var code = getParam("c");
+  var api  = (getParam("api") || "").replace(/\/+$/, "");
+  if (!api && /railway\.app$|\.up\.railway\.app$/.test(window.location.hostname)) api = window.location.origin;
 
-  const denyWrap       = $("denyWrap");
-  const successWrap    = $("successWrap");
-  const successLetters = $("successLetters");
-  const successCaption = $("successCaption");
-  const enterBtn       = $("enterBtn");
-  const greenOverlay   = $("greenOverlay");
-  const successSparks  = $("successSparks");
+  // بصمة المتصفح (لقفل الرابط على أول جهاز يفتحه)
+  var dev = "";
+  try { dev = window.localStorage.getItem("fir_dev") || ""; } catch (e) {}
+  if (!dev) {
+    dev = "d" + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+    try { window.localStorage.setItem("fir_dev", dev); } catch (e) {}
+  }
 
-  const audNort  = $("audNort");
-  const audLakab = $("audLakab");
-  const audTaraf = $("audTaraf");
-  const audOmr   = $("audOmr");
-  const audFf    = $("audFf");
-  const audTek   = $("audTek");
-  const audMusic = $("audMusic");
+  // ---------- عناصر ----------
+  var loadingBox = $("loadingBox"), statusBox = $("statusBox"), formContent = $("formContent");
+  var errBox = $("errBox"), nickInput = $("nickname"), refInput = $("referrer");
+  var genderInput = $("gender"), ageInput = $("age"), nickCheck = $("nickCheck");
+  var submitBtn = $("submitBtn"), muslimRow = $("muslimRow"), lava = $("lavaBorder");
+  var denyWrap = $("denyWrap"), successWrap = $("successWrap");
+  var muteBtn = $("muteBtn"), audMusic = $("audMusic");
 
-  let musicMuted = false;
+  var muslimChecked = false, finished = false;
 
-  function playSound(el, reset = true) {
-    if (!el) return;
+  // ---------- أصوات ----------
+  function playSound(id) {
     try {
-      if (reset) el.currentTime = 0;
-      const p = el.play();
-      if (p && p.catch) p.catch(() => {});
-    } catch (_) {}
+      var a = $(id);
+      if (!a) return;
+      a.currentTime = 0;
+      var p = a.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
   }
 
-  // ============================================================
-  // فيديو المقدمة → صفحة التسجيل
-  // ============================================================
-  let introEnded = false;
-
-  function endIntro() {
-    if (introEnded) return;
-    introEnded = true;
-    startExitSparks();
-    introWrap.classList.add("fade");
-    setTimeout(() => {
-      introWrap.style.display = "none";
-      showForm();
-    }, 1000);
+  // الموسيقى تُحمَّل متأخرة (بعد أول لمسة) حتى لا تُبطئ الصفحة
+  var musicStarted = false, musicMuted = false;
+  function startMusic() {
+    if (musicStarted) return;
+    musicStarted = true;
+    try {
+      audMusic.src = "music.mp3";
+      audMusic.volume = 0.3;
+      var p = audMusic.play();
+      if (p && p.catch) p.catch(function () { musicStarted = false; });
+    } catch (e) { musicStarted = false; }
   }
-
-  introVideo.addEventListener("ended", endIntro);
-  introVideo.addEventListener("error", endIntro);
-  const introSrc = introVideo.querySelector("source");
-  if (introSrc) introSrc.addEventListener("error", endIntro);
-
-  // احتياط: لو الفيديو ما اشتغل → 10 ثواني
-  const introFallback = setTimeout(endIntro, 10000);
-
-  introVideo.addEventListener("canplay", () => {
-    introVideo.play().catch(() => {});
-    clearTimeout(introFallback);
-    // مدة الفيديو + 0.5 ثانية احتياط
-    const wait = (introVideo.duration && isFinite(introVideo.duration))
-      ? introVideo.duration * 1000 + 500
-      : 10000;
-    setTimeout(endIntro, wait);
-  });
-
-  function startExitSparks() {
-    const c = sparks;
-    const ctx = c.getContext("2d");
-    let W = c.width = window.innerWidth;
-    let H = c.height = window.innerHeight;
-    const parts = [];
-    for (let i = 0; i < 120; i++) {
-      parts.push({
-        x: W * 0.5 + (Math.random() - 0.5) * W,
-        y: H + Math.random() * 100,
-        vx: (Math.random() - 0.5) * 3,
-        vy: -2 - Math.random() * 5,
-        size: 1 + Math.random() * 3,
-        life: 1,
-        decay: 0.008 + Math.random() * 0.015,
-        hue: 20 + Math.random() * 40
-      });
-    }
-    function loop() {
-      ctx.clearRect(0, 0, W, H);
-      let alive = 0;
-      for (const p of parts) {
-        if (p.life <= 0) continue;
-        alive++;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.08;
-        p.life -= p.decay;
-        const a = Math.max(0, p.life);
-        ctx.fillStyle = `hsla(${p.hue}, 100%, ${50 + p.life * 30}%, ${a})`;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = `hsl(${p.hue}, 100%, 60%)`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * (0.5 + p.life), 0, Math.PI * 2);
-        ctx.fill();
-      }
-      if (alive > 0) requestAnimationFrame(loop);
-    }
-    loop();
+  var firstTouch = false;
+  function onFirstTouch() {
+    if (firstTouch) return;
+    firstTouch = true;
+    if (!finished) startMusic();
   }
+  document.addEventListener("touchstart", onFirstTouch, false);
+  document.addEventListener("click", onFirstTouch, false);
+  document.addEventListener("keydown", onFirstTouch, false);
 
-  // ============================================================
-  // صفحة التسجيل
-  // ============================================================
-  function showForm() {
-    formWrap.classList.add("show");
-
-    playSound(audNort, true);
-
-    // موسيقى خلفية — صوت 20%
-    setTimeout(() => {
-      if (!musicMuted) {
-        audMusic.volume = 0.2;
-        audMusic.play().catch(() => {});
-      }
-    }, 500);
-
-    // تدوير أنماط الحدود
-    setInterval(() => {
-      lavaBorder.classList.remove("mode2", "mode3");
-      const r = Math.random();
-      if (r < 0.33) lavaBorder.classList.add("mode2");
-      else if (r < 0.66) lavaBorder.classList.add("mode3");
-    }, 3000);
-
-    initCheck();
-  }
-
-  // ============================================================
-  // زر كتم الموسيقى فقط (لا يؤثر على الأصوات الأخرى)
-  // ============================================================
-  muteBtn.addEventListener("click", () => {
+  muteBtn.addEventListener("click", function () {
     musicMuted = !musicMuted;
-    if (musicMuted) {
-      audMusic.pause();
-      muteBtn.classList.add("muted");
-      muteBtn.textContent = "🔇";
-    } else {
-      audMusic.play().catch(() => {});
-      muteBtn.classList.remove("muted");
-      muteBtn.textContent = "🔊";
-    }
-  });
+    try { audMusic.muted = musicMuted; } catch (e) {}
+    muteBtn.className = musicMuted ? "muted" : "";
+    muteBtn.innerHTML = musicMuted ? "🔇" : "🔊";
+    if (!musicMuted) startMusic();
+  }, false);
 
-  // أصوات الحقول (تعمل حتى لو الموسيقى مكتومة)
-  nickInput.addEventListener("focus", () => playSound(audLakab, true));
-  refInput.addEventListener("focus",  () => playSound(audTaraf, true));
-  ageInput.addEventListener("focus",  () => playSound(audOmr, true));
-
-  // زر المسلم
-  let muslimChecked = false;
-  muslimRow.addEventListener("click", () => {
-    muslimChecked = !muslimChecked;
-    muslimRow.classList.toggle("checked", muslimChecked);
-  });
-
-  // ============================================================
-  // API
-  // ============================================================
-  async function apiCall(path, body, timeoutMs = 15000) {
-    if (!apiBase) throw new Error("api missing");
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  // ---------- شبكة (XHR يعمل في كل المتصفحات) ----------
+  function post(path, data, cb, timeoutMs) {
+    var done = false;
+    function finish(err, status, json) { if (done) return; done = true; cb(err, status, json); }
     try {
-      const res = await fetch(apiBase + path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: ctrl.signal
-      });
-      const data = await res.json().catch(() => ({}));
-      return { status: res.status, data };
-    } finally {
-      clearTimeout(timer);
-    }
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", api + path, true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.timeout = timeoutMs || 15000;
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState !== 4) return;
+        var json = null;
+        try { json = JSON.parse(xhr.responseText); } catch (e) {}
+        if (xhr.status === 0) return finish(new Error("network"), 0, null);
+        finish(null, xhr.status, json);
+      };
+      xhr.ontimeout = function () { finish(new Error("timeout"), 0, null); };
+      xhr.onerror = function () { finish(new Error("network"), 0, null); };
+      xhr.send(JSON.stringify(data));
+    } catch (e) { finish(e, 0, null); }
   }
 
-  // ============================================================
-  // فحص الرابط
-  // ============================================================
-  async function initCheck() {
-    // ⚠️ لو ما في token أو api → هذا رابط ناقص، لكن لا نرفض فوراً
-    if (!token || !bindingToken || !apiBase) {
-      loadingBox.classList.remove("show");
-      formContent.style.display = "block";
-      // لا نعرض رفض — نعرض رسالة خطأ عادية
-      showError("⚠️ الرابط غير مكتمل. اطلب من المشرف رابطاً جديداً عبر أمر .جديد");
+  // ---------- حالات العرض ----------
+  function showStatus(icon, text, linkHref) {
+    loadingBox.className = "";
+    formContent.style.display = "none";
+    $("statusIcon").innerHTML = icon;
+    $("statusText").innerHTML = text;
+    var b = $("statusBtn");
+    if (linkHref) { b.href = linkHref; b.style.display = "inline-block"; } else { b.style.display = "none"; }
+    statusBox.className = "show";
+  }
+
+  function showDeny() {
+    finished = true;
+    loadingBox.className = "";
+    formContent.style.display = "none";
+    statusBox.className = "";
+    denyWrap.className = "show";
+    setTimeout(function () { denyWrap.className = "show shake"; }, 30);
+    playSound("audFf");
+    try { audMusic.pause(); } catch (e) {}
+    if (navigator.vibrate) { try { navigator.vibrate([200, 100, 200]); } catch (e) {} }
+  }
+
+  function showError(msg) {
+    errBox.innerHTML = msg;
+    errBox.className = "show";
+    playSound("audFf");
+    setTimeout(function () { errBox.className = ""; }, 6000);
+  }
+
+  // ---------- فحص الرابط ----------
+  function initCheck(attempt) {
+    if (!code || !api) {
+      showStatus("🔗", "الرابط غير مكتمل.<br>افتح الصفحة من زر «التسجيل» الذي يرسله البوت لك.");
       return;
     }
-
-    try {
-      const { status, data } = await apiCall("/api/flow/check-session", { token, bindingToken });
-
-      // 🚫 الرفض الحقيقي: الرابط ليس لك
-      if (status === 403 || data?.reason === "not_yours") {
-        showDeny();
-        return;
+    post("/api/flow/check-session", { code: code, dev: dev }, function (err, status, data) {
+      if (err || !data) {
+        if (attempt < 3) { return setTimeout(function () { initCheck(attempt + 1); }, 1500); }
+        return showStatus("📡", "تعذّر الاتصال بالسيرفر.<br>تأكد من الإنترنت ثم أعد فتح الرابط.");
       }
-
-      // 🟡 مسجل مسبقاً → انتقل مباشرة
-      if (data?.valid === false && data.reason === "registered") {
-        if (data.enterLink) {
-          window.location.href = data.enterLink;
-          return;
-        }
-        loadingBox.classList.remove("show");
+      if (status === 403 || data.reason === "not_yours") return showDeny();
+      if (data.valid === true) {
+        loadingBox.className = "";
         formContent.style.display = "block";
-        showError("✅ أنت مسجل مسبقاً.");
+        playSound("audNort");
         return;
       }
-
-      // ⏰ جلسة منتهية فعلاً
-      if (data?.valid === false && data.reason === "expired") {
-        loadingBox.classList.remove("show");
-        formContent.style.display = "block";
-        showError("⌛ انتهت صلاحية الرابط. اطلب من المشرف رابطاً جديداً عبر أمر .جديد");
-        return;
+      if (data.reason === "registered") {
+        return showStatus("✅", "أنت مسجل في مملكة النار بالفعل.", data.enterLink || "");
       }
-
-      // 🟢 الرابط صحيح
-      if (data?.valid === true) {
-        loadingBox.classList.remove("show");
-        formContent.style.display = "block";
-        if (data.verified) {
-          formFields.style.display = "block";
-        } else {
-          showVerify(data.code);
-        }
-        return;
+      if (data.reason === "expired") {
+        return showStatus("⌛", "انتهت صلاحية الرابط.<br>ارجع للقروب واضغط «التالي» مرة أخرى.");
       }
-
-      // 🤔 رد غير متوقع → نعرض الخطأ بدل الرفض
-      loadingBox.classList.remove("show");
-      formContent.style.display = "block";
-      showError("⚠️ تعذّر التحقق من الرابط. حاول مرة أخرى أو اطلب رابطاً جديداً.");
-
-    } catch (e) {
-      // ⚠️ خطأ اتصال (شبكة) → لا نرفض
-      loadingBox.classList.remove("show");
-      formContent.style.display = "block";
-      showError("⚠️ تعذّر الاتصال بالبوت. تحقق من اتصالك ثم أعد المحاولة.");
-    }
+      showStatus("⚠️", "تعذّر التحقق من الرابط.<br>اضغط «التالي» في القروب للحصول على رابط جديد.");
+    }, 12000);
   }
 
-  // ============================================================
-  // التحقق من الهوية: العضو يكتب .تحقق + الكود في القروب
-  // ============================================================
-  let pollTimer = null;
+  // ---------- الحدود البركانية ----------
+  var modes = ["", "mode2", "mode3"], mi = 0;
+  setInterval(function () { mi = (mi + 1) % 3; lava.className = "lava-border" + (modes[mi] ? " " + modes[mi] : ""); }, 3000);
 
-  function showVerify(code) {
-    vCode.textContent = code || "----";
-    vCmd.textContent = ".تحقق " + (code || "----");
-    verifyBox.classList.add("show");
-    formFields.style.display = "none";
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(pollVerify, 2500);
-  }
+  // ---------- أصوات الحقول ----------
+  nickInput.addEventListener("focus", function () { playSound("audLakab"); }, false);
+  refInput.addEventListener("focus", function () { playSound("audTaraf"); }, false);
+  ageInput.addEventListener("focus", function () { playSound("audOmr"); }, false);
 
-  async function pollVerify() {
-    try {
-      const { status, data } = await apiCall("/api/flow/check-session", { token, bindingToken }, 8000);
-      if (status === 403) { clearInterval(pollTimer); verifyBox.classList.remove("show"); formContent.style.display = "none"; showDeny(); return; }
-      if (data?.valid === false) {
-        clearInterval(pollTimer);
-        verifyBox.classList.remove("show");
-        if (data.reason === "registered" && data.enterLink) { window.location.href = data.enterLink; return; }
-        showError(data.reason === "registered" ? "✅ أنت مسجل مسبقاً." : "⌛ انتهت صلاحية الرابط. اطلب من المشرف رابطاً جديداً عبر أمر .جديد");
-        return;
-      }
-      if (data?.valid === true && data.verified) {
-        clearInterval(pollTimer);
-        verifyBox.classList.remove("show");
-        formFields.style.display = "block";
-        playSound(audNort, true);
-      }
-    } catch (_) { /* نعيد المحاولة بعد 2.5 ثانية */ }
-  }
-
-  // ============================================================
-  // رسالة خطأ + ff.mp3
-  // ============================================================
-  function showError(msg) {
-    errBox.textContent = msg;
-    errBox.classList.remove("show");
-    void errBox.offsetWidth;
-    errBox.classList.add("show");
-    playSound(audFf, true);
-  }
-
-  // ============================================================
-  // شاشة الرفض (فقط عند 403)
-  // ============================================================
-  function showDeny() {
-    formWrap.style.display = "none";
-    denyWrap.classList.add("show");
-    playSound(audFf, true);
-    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]); } catch (_) {}
-    denyWrap.classList.add("shake");
-    setInterval(() => {
-      denyWrap.classList.remove("shake");
-      void denyWrap.offsetWidth;
-      denyWrap.classList.add("shake");
-      try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (_) {}
-    }, 3000);
-  }
-
-  // ============================================================
-  // فحص اللقب أثناء الكتابة
-  // ============================================================
-  let nickTimer = null;
-  let nickOk = false;
-
-  nickInput.addEventListener("input", () => {
-    const v = nickInput.value.trim();
-    nickCheck.textContent = "";
-    nickOk = false;
-    if (v.length < 2) return;
-
+  // ---------- توفر اللقب ----------
+  var nickTimer = null;
+  nickInput.addEventListener("input", function () {
     clearTimeout(nickTimer);
-    nickTimer = setTimeout(async () => {
-      nickCheck.textContent = "⏳ جار التحقق...";
-      nickCheck.style.color = "#ffa94d";
-      try {
-        const { data } = await apiCall("/api/flow/check-nickname", {
-          token, bindingToken, nickname: v
-        });
-        if (data?.taken) {
-          nickCheck.textContent = "❌ هذا اللقب مأخوذ";
-          nickCheck.style.color = "#ff6b6b";
-          nickOk = false;
-          playSound(audFf, true);
-        } else {
-          nickCheck.textContent = "✅ اللقب متاح";
-          nickCheck.style.color = "#4ade80";
-          nickOk = true;
-        }
-      } catch (_) {
-        nickCheck.textContent = "";
-      }
+    var v = nickInput.value.replace(/^\s+|\s+$/g, "");
+    if (v.length < 2) { nickCheck.innerHTML = ""; return; }
+    nickTimer = setTimeout(function () {
+      post("/api/flow/check-nickname", { code: code, dev: dev, nickname: v }, function (err, status, d) {
+        if (err || !d) return;
+        if (status === 403) return showDeny();
+        if (d.taken) { nickCheck.style.color = "#ff6b6b"; nickCheck.innerHTML = "❌ هذا اللقب مأخوذ"; }
+        else { nickCheck.style.color = "#4ade80"; nickCheck.innerHTML = "✅ اللقب متاح"; }
+      }, 8000);
     }, 500);
-  });
+  }, false);
 
-  const BAD = /(الله|كس|خرا|خرء|كلب|عير|زب|شرموط|قحبة|طيز|نيك|سكس|عاهرة|حمار|خنزير)/i;
+  // ---------- المسلم ----------
+  muslimRow.addEventListener("click", function () {
+    muslimChecked = !muslimChecked;
+    muslimRow.className = "muslim-row" + (muslimChecked ? " checked" : "");
+  }, false);
 
-  // ============================================================
-  // الإرسال
-  // ============================================================
-  submitBtn.addEventListener("click", async () => {
-    errBox.classList.remove("show");
+  // ---------- الإرسال ----------
+  submitBtn.addEventListener("click", function () {
+    var nickname = nickInput.value.replace(/^\s+|\s+$/g, "");
+    var referrer = refInput.value.replace(/^\s+|\s+$/g, "");
+    var gender = genderInput.value;
 
-    const nickname = nickInput.value.trim();
-    const referrer = refInput.value.trim();
-    const gender   = genderInput.value;
-    const ageRaw   = ageInput.value.trim();
+    if (nickname.length < 2) return showError("⚠️ اكتب لقباً من حرفين على الأقل.");
+    if (referrer.length < 2) return showError("⚠️ اكتب من طرف من دخلت.");
+    if (!gender) return showError("⚠️ اختر جنسك.");
 
-    if (nickname.length < 2)  return showError("⚠️ اكتب لقب من حرفين على الأقل.");
-    if (nickname.length > 30) return showError("⚠️ اللقب طويل جداً (30 حرف كحد أقصى).");
-    if (nickOk === false)     return showError("❌ اللقب مأخوذ — اختر لقباً آخر.");
-    if (BAD.test(nickname))   return showError("⛔ هذا اللقب غير مناسب. اختر لقباً محترماً.");
-    if (referrer.length < 2)  return showError("⚠️ اكتب من طرف من دخلت.");
-    if (referrer.length > 40) return showError("⚠️ اسم الطرف طويل جداً (40 حرف).");
-    if (!gender)              return showError("⚠️ اختر جنسك.");
-    if (!muslimChecked)       return showError("⚠️ يجب تأكيد أنك مسلم.");
-
-    let age = null;
-    if (ageRaw !== "") {
-      const n = parseInt(ageRaw, 10);
-      if (!Number.isFinite(n) || n < 5 || n > 99) {
-        return showError("⚠️ العمر يجب أن يكون بين 5 و 99.");
-      }
+    var age = null;
+    if (ageInput.value !== "") {
+      var n = parseInt(ageInput.value, 10);
+      if (isNaN(n) || n < 5 || n > 99) return showError("⚠️ العمر يجب أن يكون بين 5 و 99.");
       age = n;
     }
+    if (!muslimChecked) return showError("⚠️ يجب تأكيد الإقرار الأخضر أولاً.");
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "⏳ جار الإرسال...";
+    submitBtn.innerHTML = "⏳ جار الإرسال...";
 
-    try {
-      const { status, data } = await apiCall("/api/flow/submit", {
-        token, bindingToken, nickname, referrer, gender, age
-      });
-
-      if (status === 403) return showError(data?.error || "⛔ الرابط ليس لك.");
-      if (data?.errors) {
-        const first = Object.values(data.errors)[0];
-        return showError(first);
-      }
-      if (!data?.ok) return showError(data?.error || "⚠️ تعذّر إكمال التسجيل.");
-
-      showSuccess(data.nickname || nickname, data.enterLink);
-
-    } catch (e) {
-      showError("⚠️ تعذّر الاتصال: " + (e?.message || ""));
-    } finally {
+    post("/api/flow/submit", { code: code, dev: dev, nickname: nickname, referrer: referrer, gender: gender, age: age }, function (err, status, d) {
       submitBtn.disabled = false;
-      submitBtn.textContent = "🔥 التالي";
-    }
-  });
+      submitBtn.innerHTML = "🔥 التالي";
 
-  // ============================================================
-  // الشاشة السنمائية للنجاح
-  // ============================================================
-  function showSuccess(nickname, enterLink) {
-    audMusic.pause();
-    formWrap.style.opacity = "0";
-    formWrap.style.transition = "opacity 0.8s";
-    setTimeout(() => {
-      formWrap.style.display = "none";
-      successWrap.classList.add("show");
-      animateLetters(nickname, enterLink);
-    }, 800);
-  }
+      if (err || !d) return showError("⚠️ تعذّر الاتصال، حاول مرة أخرى.");
+      if (status === 403 || d.reason === "not_yours") return showDeny();
 
-  function animateLetters(nickname, enterLink) {
-    successLetters.innerHTML = "";
-    const chars = nickname.split("");
-    const letters = [];
+      if (d.ok) return showSuccess(d.nickname || nickname, d.enterLink || "");
 
-    chars.forEach((ch) => {
-      const el = document.createElement("span");
-      el.className = "letter";
-      if (ch === " ") el.innerHTML = "&nbsp;";
-      else el.textContent = ch;
-      successLetters.appendChild(el);
-      letters.push(el);
-    });
-
-    const dirs = ["right", "top", "left"];
-    letters.forEach((el) => {
-      const dir = dirs[Math.floor(Math.random() * dirs.length)];
-      if (dir === "right") el.style.transform = "translate(200px, -100px) scale(3) rotate(180deg)";
-      else if (dir === "left") el.style.transform = "translate(-200px, -100px) scale(3) rotate(-180deg)";
-      else el.style.transform = "translate(0, -300px) scale(3) rotate(180deg)";
-    });
-
-    letters.forEach((el, i) => {
-      setTimeout(() => {
-        el.style.transform = "";
-        el.classList.add("in");
-        playSound(audTek, true);
-      }, 250 + i * 220);
-    });
-
-    const totalTime = 250 + letters.length * 220 + 500;
-
-    setTimeout(() => {
-      letters.forEach(el => el.classList.add("shrink"));
-    }, totalTime);
-
-    setTimeout(() => {
-      greenOverlay.classList.add("in");
-      successCaption.classList.add("in");
-      startSuccessSparks();
-    }, totalTime + 500);
-
-    setTimeout(() => {
-      if (enterLink) {
-        enterBtn.href = enterLink;
-        enterBtn.classList.add("in");
+      if (d.errors) {
+        var first = d.errors.nickname || d.errors.referrer || d.errors.gender || d.errors.age;
+        return showError(String(first || "⚠️ تحقق من البيانات.").replace(/\n/g, "<br>"));
       }
-    }, totalTime + 1200);
-  }
+      showError(String(d.error || "⚠️ حدث خطأ.").replace(/\n/g, "<br>"));
+    }, 25000);
+  }, false);
 
-  function startSuccessSparks() {
-    const c = successSparks;
-    const ctx = c.getContext("2d");
-    let W = c.width = window.innerWidth;
-    let H = c.height = window.innerHeight;
+  // ============================================================
+  // 🎬 النجاح: اللقب ← نورت ← مملكة ← النار (كل كلمة كاملة بصوت) ثم زر الدخول
+  // ============================================================
+  var sparksRunning = false;
 
-    window.addEventListener("resize", () => {
-      W = c.width = window.innerWidth;
-      H = c.height = window.innerHeight;
-    });
-
-    const parts = [];
-    for (let i = 0; i < 80; i++) parts.push(spawnParticle(W, H));
-
-    function spawnParticle(W, H) {
-      return {
-        x: Math.random() * W,
-        y: H + Math.random() * 50,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: -1 - Math.random() * 3,
-        size: 1 + Math.random() * 3,
-        life: 1,
-        decay: 0.004 + Math.random() * 0.008,
-        hue: Math.random() < 0.5 ? 120 : 30
-      };
+  function startSparks() {
+    var c = $("successSparks");
+    if (!c || !c.getContext) return;
+    var ctx = c.getContext("2d");
+    function size() { c.width = window.innerWidth; c.height = window.innerHeight; }
+    size(); window.addEventListener("resize", size, false);
+    var ps = [], i;
+    for (i = 0; i < 70; i++) ps.push(spawn(true));
+    function spawn(initial) {
+      return { x: Math.random() * c.width, y: initial ? Math.random() * c.height : c.height + 10,
+               r: 1 + Math.random() * 2.6, v: 0.6 + Math.random() * 2.2, d: (Math.random() - 0.5) * 0.8,
+               a: 0.4 + Math.random() * 0.6 };
     }
-
-    function loop() {
-      if (!successWrap.classList.contains("show")) return;
-      ctx.clearRect(0, 0, W, H);
-      for (let i = 0; i < parts.length; i++) {
-        const p = parts[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy -= 0.02;
-        p.life -= p.decay;
-        if (p.life <= 0) { parts[i] = spawnParticle(W, H); continue; }
-        const a = Math.max(0, p.life);
-        ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${a})`;
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = `hsl(${p.hue}, 100%, 60%)`;
+    sparksRunning = true;
+    (function tick() {
+      if (!sparksRunning) return;
+      ctx.clearRect(0, 0, c.width, c.height);
+      for (var k = 0; k < ps.length; k++) {
+        var p = ps[k];
+        p.y -= p.v; p.x += p.d;
+        if (p.y < -10) ps[k] = spawn(false);
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * (0.5 + p.life), 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255," + (100 + Math.floor(p.a * 120)) + ",0," + p.a + ")";
+        ctx.arc(p.x, p.y, p.r, 0, 6.2832);
         ctx.fill();
       }
-      requestAnimationFrame(loop);
-    }
-    loop();
+      (window.requestAnimationFrame || function (f) { setTimeout(f, 33); })(tick);
+    })();
   }
 
+  function showSuccess(nickname, enterLink) {
+    finished = true;
+    try { audMusic.pause(); } catch (e) {}
+    successWrap.className = "show";
+    var stage = $("wordStage");
+    stage.innerHTML = "";
+    setTimeout(function () { $("greenOverlay").className = "in"; }, 50);
+    startSparks();
+
+    var enter = $("enterBtn");
+    enter.href = enterLink || "#";
+    if (!enterLink) enter.style.display = "none";
+
+    var words = [
+      { t: nickname, c: "word nick" },
+      { t: "نورت",   c: "word" },
+      { t: "مملكة",  c: "word" },
+      { t: "النار",  c: "word fire" }
+    ];
+    // لقب طويل → خط أصغر
+    var nickSize = nickname.length > 14 ? 30 : (nickname.length > 9 ? 40 : 54);
+
+    var idx = 0;
+    function dropNext() {
+      if (idx >= words.length) {
+        return setTimeout(function () { enter.className = "in"; playSound("audNort"); }, 900);
+      }
+      var w = words[idx];
+      var el = document.createElement("div");
+      el.className = w.c;
+      if (idx === 0) el.style.fontSize = nickSize + "px";
+      el.appendChild(document.createTextNode(w.t));
+      stage.appendChild(el);
+      // reflow ثم دخول
+      void el.offsetWidth;
+      el.className = w.c + " in";
+      playSound("audTek");
+      idx++;
+      setTimeout(dropNext, 1150);
+    }
+    setTimeout(dropNext, 900);
+  }
+
+  // ابدأ
+  initCheck(1);
 })();
 </script>
-
 </body>
- </html>
+</html>
