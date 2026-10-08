@@ -605,6 +605,17 @@
       <a href="#" class="s-btn" id="statusBtn" style="display:none;" target="_blank" rel="noopener">🟢 الدخول</a>
     </div>
 
+    <div id="waitBox" style="display:none; text-align:center; padding:30px 8px;">
+      <div class="spinner"></div>
+      <div style="margin-top:22px; color:#ffd0a0; font-size:19px; font-weight:800; line-height:2;">✅ وصلتنا بياناتك</div>
+      <div style="margin-top:10px; color:#ffa94d; font-size:16px; line-height:2;">
+        ارجع إلى <b>القروب</b> واضغط زر<br>
+        <span style="color:#4ade80; font-weight:900;">✅ تأكيد</span><br>
+        ليكتمل تسجيلك
+      </div>
+      <div style="margin-top:14px; color:#aaa; font-size:13px;">⏳ تنتقل الصفحة تلقائياً بعد التأكيد</div>
+    </div>
+
     <div id="formContent" style="display:none;">
       <div id="errBox"></div>
 
@@ -820,6 +831,7 @@
       if (status === 403 || data.reason === "not_yours") return showDeny();
       if (data.valid === true) {
         loadingBox.className = "";
+        if (data.pending) { showWaiting(data.pending.nickname || ""); return; }   // أرسل بياناته سابقاً وينتظر التأكيد
         formContent.style.display = "block";
         playSound("audNort");
         return;
@@ -901,6 +913,7 @@
       if (err || !d) return showError("⚠️ تعذّر الاتصال، حاول مرة أخرى.");
       if (status === 403 || d.reason === "not_yours") return showDeny();
 
+      if (d.ok && d.pending) return showWaiting(d.nickname || nickname);
       if (d.ok) return showSuccess(d.nickname || nickname, d.enterLink || "");
 
       if (d.errors) {
@@ -910,6 +923,49 @@
       showError(esc(d.error || "⚠️ حدث خطأ."));
     }, 25000);
   }, false);
+
+  // ============================================================
+  // ⏳ بانتظار تأكيد صاحب الرقم داخل القروب (زر ✅ تأكيد)
+  // ============================================================
+  var statusTimer = null, waitStarted = 0;
+
+  function showWaiting(nickname) {
+    formContent.style.display = "none";
+    statusBox.className = "";
+    $("waitBox").style.display = "block";
+    waitStarted = new Date().getTime();
+    if (statusTimer) clearInterval(statusTimer);
+    statusTimer = setInterval(function () { pollStatus(nickname); }, 3000);
+  }
+
+  function stopWaiting() {
+    if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
+    $("waitBox").style.display = "none";
+  }
+
+  function pollStatus(nickname) {
+    if (new Date().getTime() - waitStarted > 16 * 60 * 1000) {
+      stopWaiting();
+      return showStatus("⌛", "انتهت مهلة التأكيد.<br>ارجع للقروب واضغط «التالي» لتبدأ من جديد.");
+    }
+    post("/api/flow/status", { code: code, dev: dev }, function (err, status, d) {
+      if (err || !d) return;                       // نعيد المحاولة بعد 3 ثوان
+      if (status === 403 || d.reason === "not_yours") { stopWaiting(); return showDeny(); }
+      if (d.valid === false) {                     // انتهى/أُلغي الكود
+        stopWaiting();
+        return showStatus("⌛", "انتهت صلاحية الرابط.<br>ارجع للقروب واضغط «التالي» مرة أخرى.");
+      }
+      if (d.state === "confirmed") { stopWaiting(); return showSuccess(d.nickname || nickname, d.enterLink || ""); }
+      if (d.state === "rejected") {
+        stopWaiting();
+        return showStatus("❌", "أُلغي الطلب من القروب.<br>اضغط «التالي» هناك لتسجّل من جديد.");
+      }
+      if (d.state === "expired") {
+        stopWaiting();
+        return showStatus("⌛", "انتهت مهلة التأكيد.<br>اضغط «التالي» في القروب لتبدأ من جديد.");
+      }
+    }, 8000);
+  }
 
   // ============================================================
   // 🎬 النجاح: اللقب ← نورت ← مملكة ← النار (كل كلمة كاملة بصوت) ثم زر الدخول
